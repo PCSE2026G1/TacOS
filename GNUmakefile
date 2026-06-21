@@ -32,6 +32,7 @@ SUBDIRS:=os usr
 
 all :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
+	mkdir -p uSD/bin
 	mv os/kernel.bin uSD
 	mv os/kernel0.bin uSD
 	mv usr/*/*.exe uSD/bin
