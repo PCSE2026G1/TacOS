@@ -31,7 +31,7 @@ NAME=ss
 SRCS=${NAME}.cmm
 #----------------------------------------------------------------------------
 
-all : clean ${NAME}.bin
+all : ${NAME}.bin
 
 ${NAME}.bin : ${SRCS}
 	cm2c -o ${NAME}.bin ${SRCS}

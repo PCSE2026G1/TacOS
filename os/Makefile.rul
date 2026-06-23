@@ -47,6 +47,13 @@ else
 CMFLAGS+=-I../app               # 組込版にはappがある(ttyも標準では使用しない．．．)
 endif
 
+ifdef EMBEDDED
+OBJS := $(OBJS:%.o=%_0.o)
+MOD := mod_0.o
+else
+MOD := mod.o
+endif
+
 # make するソースのサフィックス（拡張子） の一覧
 .SUFFIXES: .o .cmm .s
 
@@ -59,8 +66,14 @@ endif
 	cm2e ${CMFLAGS} -c $*.cmm
 
 # 各サブディレクトリで生成される .o ファイルを結合して mod.o ファイルを生成する
-mod.o : ${OBJS}
-	ld-- mod.o ${OBJS} > mod.sym
+$(MOD) : ${OBJS}
+	ld-- $@ ${OBJS} > mod.sym
+
+%_0.s: %.s
+	test -f $@ || ln -s $(@:%_0.s=%.s) $@
+
+%_0.cmm: %.cmm
+	test -f $@ || ln -s $(@:%_0.cmm=%.cmm) $@
 
 clean :
-	rm -f *.o *.lst *.sym *~
+	rm -f *.o *.lst *.sym *_0.s *_0.cmm *~
