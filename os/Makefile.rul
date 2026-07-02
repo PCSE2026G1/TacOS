@@ -38,6 +38,7 @@ CMFLAGS+=-DEMBEDDED
 endif
 
 CMFLAGS+=-I/usr/local/cmmInclude
+CMFLAGS+=-I/usr/cmmInclude
 CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../tty -I../sio
 
 ifndef EMBEDDED

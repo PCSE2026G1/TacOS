@@ -1,4 +1,13 @@
-.DS_Store
+*
+!*/
+!?*.*
+!*Makefile*
+!*makefile*
+.*
+*.exe
+/uSD
+/usr/spitest/font.cmm
+
 *~
 *.map
 *.o
