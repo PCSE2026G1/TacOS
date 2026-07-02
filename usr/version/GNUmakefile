@@ -32,7 +32,7 @@ VER=`cat ../../VERSION`
 DATE=`env LC_TIME=C date`
 #----------------------------------------------------------------------------
 
-all : clean ${NAME}.exe ${NAME}
+all : ${NAME}.exe ${NAME}
 
 ${NAME}.exe : ${SRCS}
 	cm2e -DVER=\""${VER}"\" -DDATE=\""${DATE}"\" -o ${NAME} ${SRCS}

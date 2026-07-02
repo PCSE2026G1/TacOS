@@ -4,6 +4,7 @@
 !*Makefile*
 !*makefile*
 .*
+!.gitignore
 *.exe
 /uSD
 /usr/spitest/font.cmm

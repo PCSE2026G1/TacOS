@@ -30,12 +30,15 @@ MAKEFLAGS=--no-print-directory
 # サブディレクトリ
 SUBDIRS:=os usr
 
-all :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
+all : $(SUBDIRS)
 	mkdir -p uSD/bin
-	mv os/kernel.bin uSD
-	mv os/kernel0.bin uSD
-	mv usr/*/*.exe uSD/bin
+	cp os/kernel.bin uSD
+	cp os/kernel0.bin uSD
+	cp usr/*/*.exe uSD/bin
+
+.PHONY: $(SUBDIRS)
+$(SUBDIRS):
+	$(MAKE) -C $@
 
 clean :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) clean; )

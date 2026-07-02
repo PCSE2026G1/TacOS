@@ -47,7 +47,7 @@ EMBSUBDIRS:=util kernel fs mm app            # 組み込みカーネル
 
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 GENOBJS=$(foreach dir, $(GENSUBDIRS), $(dir)/mod.o )
-EMBOBJS=$(foreach dir, $(EMBSUBDIRS), $(dir)/mod.o )
+EMBOBJS=$(foreach dir, $(EMBSUBDIRS), $(dir)/mod_0.o )
 
 
 # clean を実行した後 kernel.bin を実行
@@ -61,15 +61,17 @@ clean : clean1 clean0
 # (3) kernel.o のサイズを表示
 # (4) kernel.o を 0x0000 番地にロードした kernel.bin を生成
 # (5) メモリマップを kernel.map に格納
-kernel.bin : clean1
-	$(foreach dir,$(GENSUBDIRS),${MAKE} ${DEBUG} --directory=$(dir);)
+.PHONY: kernel.bin
+kernel.bin :
+	for dir in $(GENSUBDIRS); do $(MAKE) $(DEBUG) -C $${dir} || exit; done
 	ld-- kernel.o ${GENOBJS} > kernel.sym
 	size-- kernel.o
 	objbin-- 0x0000 kernel.bin kernel.o | sort --key=1 > kernel.map
 
 # 組み込みアプリ用のカーネルを作る
-kernel0.bin : clean0
-	$(foreach dir,$(EMBSUBDIRS),${MAKE} ${DEBUG} EMBEDDED=1 --directory=$(dir);)
+.PHONY: kernel0.bin
+kernel0.bin :
+	for dir in $(EMBSUBDIRS); do $(MAKE) $(DEBUG) EMBEDDED=1 -C $${dir} || exit; done
 	ld-- kernel0.o ${EMBOBJS} > kernel0.sym
 	size-- kernel0.o
 	objbin-- 0x0000 kernel0.bin kernel0.o | sort --key=1 > kernel0.map
