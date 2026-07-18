@@ -25,3 +25,38 @@ function(define_struct size_var align_var)
     set(${size_var} ${struct_size} PARENT_SCOPE)
     set(${align_var} ${struct_align} PARENT_SCOPE)
 endfunction()
+
+function(add_tac_library lib_name)
+    set(objs)
+    math(EXPR last "${ARGC} - 1")
+    foreach(i RANGE 1 ${last})
+        list(GET ARGV ${i} src)
+        string(REGEX MATCH "[^/]*$" basename ${src})
+        string(REGEX MATCH "[^.]*$" ext ${basename})
+        #string(REGEX REPLACE "\\.[^.]*$" ".o" obj ${basename})
+        set(obj "${basename}.o")
+        if(NOT IS_ABSOLUTE ${src})
+            set(src "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
+        endif()
+
+        if(${ext} STREQUAL "s")
+            add_custom_command(
+                OUTPUT ${obj}
+                COMMAND cp ${src} .tmp.s
+                COMMAND as-- .tmp.s
+                COMMAND mv .tmp.o ${obj}
+                DEPENDS ${src}
+                VERBATIM
+            )
+        endif()
+        list(APPEND objs ${obj})
+    endforeach()
+
+    add_custom_command(
+        OUTPUT "${lib_name}.o"
+        COMMAND ld-- "${lib_name}.o" ${objs} > "${lib_name}.sym"
+        DEPENDS ${objs}
+        VERBATIM
+    )
+    add_custom_target(${lib_name} ALL DEPENDS "${lib_name}.o")
+endfunction()
