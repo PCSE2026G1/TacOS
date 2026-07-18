@@ -94,3 +94,20 @@ endif()
 list(TRANSFORM CMDIRS PREPEND "-I${CMAKE_CURRENT_SOURCE_DIR}/")
 list(APPEND CMCPPFLAGS ${CMDIRS})
 list(APPEND CMFLAGS ${CMCPPFLAGS})
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/font.cmm
+    COMMAND make --silent -C ${CMAKE_CURRENT_SOURCE_DIR}/Font
+    DEPENDS Font/font8x8.c Font/font8x8_basic.h
+    VERBATIM
+)
+
+add_tac_library(mod_0
+    spi.cmm
+    font.cmm
+    lcd.cmm
+    mp3Proc.cmm
+    shellProc.cmm
+    appUtil.cmm
+    mp3Files.cmm
+)
