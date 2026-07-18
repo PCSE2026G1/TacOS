@@ -39,13 +39,21 @@ function(add_tac_library lib_name)
             set(src "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
         endif()
 
-        if(${ext} STREQUAL "s")
+        if("${ext}" STREQUAL "s")
             add_custom_command(
                 OUTPUT ${obj}
-                COMMAND cp ${src} .tmp.s
-                COMMAND as-- .tmp.s
-                COMMAND mv .tmp.o ${obj}
+                COMMAND cp ${src} "${basename}.s"
+                COMMAND as-- "${basename}.s"
                 DEPENDS ${src}
+                VERBATIM
+            )
+        elseif("${ext}" STREQUAL "cmm")
+            add_custom_command(
+                OUTPUT ${obj}
+                COMMAND cpp -MD -MF "${basename}.d" ${CMCPPFLAGS} ${src} -o "${basename}.cmm"
+                COMMAND cm2e -c ${CMFLAGS} "${basename}.cmm"
+                DEPENDS ${src}
+                DEPFILE "${basename}.d"
                 VERBATIM
             )
         endif()
@@ -60,3 +68,29 @@ function(add_tac_library lib_name)
     )
     add_custom_target(${lib_name} ALL DEPENDS "${lib_name}.o")
 endfunction()
+
+set(CMCPPFLAGS
+    -DEMBEDDED
+    -I/usr/local/cmmInclude
+    -I/usr/cmmInclude
+    -nostdinc
+)
+set(CMFLAGS
+    -K
+)
+set(CMDIRS
+    ../kernel
+    ../util
+    ../fs
+    ../mm
+    ../tty
+    ../sio
+    ../app
+)
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    list(APPEND CMCPPFLAGS -DDEBUG)
+endif()
+
+list(TRANSFORM CMDIRS PREPEND "-I${CMAKE_CURRENT_SOURCE_DIR}/")
+list(APPEND CMCPPFLAGS ${CMDIRS})
+list(APPEND CMFLAGS ${CMCPPFLAGS})
