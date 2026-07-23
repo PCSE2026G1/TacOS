@@ -132,4 +132,5 @@ add_tac_library(mod_0
     mp3Files.cmm
 
     ${CMAKE_CURRENT_BINARY_DIR}/app_process.s
+    src/lcd.s
 )
