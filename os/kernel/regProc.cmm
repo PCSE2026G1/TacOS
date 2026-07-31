@@ -30,6 +30,7 @@
 #include <mm.hmm>
 #include <fs.hmm>
 #include "kernel.hmm"
+#include <Clock.hmm>
 
 #ifndef EMBEDDED
 #include <pm.hmm>
@@ -58,6 +59,8 @@ int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザ�
 // 組み込みカーネルの場合
 MakePCB(shellMem);                                  // APPのPCBとスタック領域
 MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
+MakePCB(ClockMem);
+MakePCM(ClockSubMem);
 int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
 int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
 #endif
@@ -97,6 +100,13 @@ public void regProc()  {
 
   // SPIドライバの初期化（プロセス起動前にすべきことをやる）
   spiInit();
+
+  ClockInit();
+  newProc(addrof(clockMain),0,0,EI|KERN, _AtoA(clockMem), null);
+  schProc(_AtoA(ClockMem));
+  newProc(addrof(clockSub),1,0,EI|KERN, _AtoA(ClockSubMem), null);
+  schProc(_AtoA(ClockSubMem));
+
 
 #endif
 }

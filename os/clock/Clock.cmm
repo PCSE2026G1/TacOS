@@ -1,0 +1,148 @@
+#include "Clock.hmm"
+#include "util.hmm"
+#include "mm.hmm"
+
+Time currentTime = {1900, 1, 1, 0, 0, 0};
+Time alarmTime = {1900, 1, 1, 0, 0, 0};
+Time timerTime = {0, 0, 0, 0, 0, 0};
+
+int sec; 
+int sec0;
+int sem;
+
+char[] alarmFile = null;
+
+void copyTime(Time dst, Time src) {
+    if (dst==null || src==null) return;
+
+    dst.year = src.year;
+    dst.mon = src.mon;
+    dst.day = src.day;
+    dst.hour = src.hour;
+    dst.min = src.min;
+    dst.sec = src.sec;
+}
+
+boolean isLeapYear(int year) {
+    if ((year % 400)==0) return true;
+    if ((year % 100)==0) return false;
+
+    return (year % 4)==0;
+}
+
+int daysInMonth(int year, int mon) {
+    if (mon==2) {
+        if (isLeapYear(year)) return 29;
+        return 28;
+    }
+
+    if (mon==4 || mon==6 || mon==9 || mon==11) {
+        return 30;
+    }
+    return 31;
+}
+
+boolean isValidTime(Time time) {
+    // if (time.year<0) return false;
+    if (time.mon<1 || time.mon>12) return false;
+
+    if (time.day<1 || time.day>daysInMonth(time.year, time.mon)) {
+        return false;
+    }
+
+    if (time.hour<0 || time.hour>23) return false;
+    if (time.min<0 || time.min>59) return false;
+    if (time.sec<0 || time.sec>59) return false;
+
+    return true;
+}
+
+public void getTime(Time time) {
+    semP(sem);
+    copyTime(time, currentTime);
+    semV(sem);
+}
+
+public void setTime(Time time) {
+    if (!isValidTime(time)) return;
+    semP(sem);
+    copyTime(currentTime, time);
+    semV(sem);
+}
+
+public void getAlarm(Time time) {
+    copyTime(time, alarmTime);
+}
+
+public void setAlarm(Time time) {
+    if (!isValidTime(time)) return;
+
+    copyTime(alarmTime, time);
+}
+
+public char[] getFile() {
+    return alarmFile;
+}
+
+public void setFile(char[] file) {
+    if(alarmFile != null){
+        free(alarmFile)
+        alarmFile = null
+    }
+    if(file != null){
+        int length = strLen(file)
+        alarmFile = malloc(length+1)
+        strCpy(alarm, file)
+    }
+}
+
+public void setTimer(Time time) {
+    if (!isValidTime(time)) return;
+
+    copyTime(timerTime, time)
+}
+
+public void clockMain(){
+    for(;;){
+        sleep(1000);
+        sec = sec + 1;
+        // increaseSecond();
+    }
+}
+
+void addSec(int n, Time time){
+    time.sec = time.sec + n;
+    time.min = time.min + time.sec / 60;
+    time.sec = time.sec % 60;
+    time.hour = time.hour + time.min / 60;
+    time.min = time.min % 60;
+    time.day = time.day + time.hour / 24;
+    time.hour = time.hour % 24;
+
+    if (currentTime.day
+        > daysInMonth(currentTime.year, currentTime.mon)) {
+        currentTime.day = 1;
+        currentTime.mon = currentTime.mon + 1;
+    }
+
+    if (currentTime.mon>12) {
+        currentTime.mon = 1;
+        currentTime.year = currentTime.year + 1;
+    }
+}
+
+public void clockSub(){
+    sec0 = sec;
+    for(;;){
+        semP(sem);
+        int sec2 = sec;
+        addSec(sec2-sec0, currentTime);
+        sec0 = sec2;
+        semV(sem);
+        sleep(1000);
+    }
+}
+
+public void ClockInit(){
+    sem = newSem(0);
+}

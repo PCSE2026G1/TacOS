@@ -1,0 +1,13 @@
+#ifndef TIME_HMM
+#define TIME_HMM
+
+struct Time {
+    int year;
+    int mon;
+    int day;
+    int hour;
+    int min;
+    int sec;
+};
+
+#endif
