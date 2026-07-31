@@ -2,23 +2,28 @@
 #include "Lcd.hmm"
 
 public int select(char[] title, char[][] array, int size) {
-    int cursor = 0;
-    for(int i = cursor; i < cursor+6; i++){
-        drawString(0,i,array[i]);
+    drawString(0,0,title);  //1行目にタイトル
+    drawString(0,1,"");     //2行目に空白
+
+    for(int i = 2; i < 8; i++){     //2行目から7行目までファイル名をプロット
+        int index = i - 2;          //arrayにアクセスする場所はi-2
+        drawString(0,i,array[index]);
     }
 
+
+    int cursor = 0;
     for (;;) {
         int sw = readSw();
         int num = swToNum(sw);
         int start = 0; //描画開始位置
-        int displaySize = 6;
+        int fileCount = 6;  //ファイルを表示できる数6個
 
         if (num == 5) { // 下
             if (cursor < size - 1) {
                 cursor++;
 
                 //cursorが、描画開始位置から6個を越えたらカーソルが画面外なので描画位置(start)を++
-                if (cursor >= start + displaySize) {
+                if (cursor >= start + fileCount) {
                     start++;
                 }
             }
@@ -35,12 +40,12 @@ public int select(char[] title, char[][] array, int size) {
         }
 
         //もし画面サイズstartから6個が、サイズより大きくなったら
-        if (start + displaySize > size) {
-            start = size - displaySize;
+        if (start + fileCount > size) {
+            start = size - fileCount;
         }
 
         // 表示
-        for (int i = 0; i < displaySize; i++) {
+        for (int i = 2; i < 8; i++) {
             int index = start + i;
 
             drawString(0, i, array[index]);
