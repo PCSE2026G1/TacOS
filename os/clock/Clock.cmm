@@ -86,20 +86,20 @@ public char[] getFile() {
 
 public void setFile(char[] file) {
     if(alarmFile != null){
-        free(alarmFile)
-        alarmFile = null
+        free(alarmFile);
+        alarmFile = null;
     }
     if(file != null){
-        int length = strLen(file)
-        alarmFile = malloc(length+1)
-        strCpy(alarm, file)
+        int length = strLen(file);
+        alarmFile = malloc(length+1);
+        strCpy(alarmFile, file);
     }
 }
 
 public void setTimer(Time time) {
     if (!isValidTime(time)) return;
 
-    copyTime(timerTime, time)
+    copyTime(timerTime, time);
 }
 
 public void clockMain(){
