@@ -1,6 +1,7 @@
 #include "Clock.hmm"
 #include "util.hmm"
 #include "mm.hmm"
+#include "AudioDecoder.hmm"
 
 Time currentTime = {1900, 1, 1, 0, 0, 0};
 Time alarmTime = {1900, 1, 1, 0, 0, 0};
@@ -55,6 +56,20 @@ boolean isValidTime(Time time) {
     if (time.sec<0 || time.sec>59) return false;
 
     return true;
+}
+
+boolean CompTime(Time time1, Time time2) {
+    if (time1.year == time2.year &
+        time1.mon == time2.mon &
+        time1.day == time2.day &
+        time1.hour == time2.hour &
+        time1.min == time2.min &
+        time1.sec == time2.sec ){
+        return true;
+    }else{
+        return false;
+    }
+
 }
 
 public void getTime(Time time) {
@@ -140,6 +155,9 @@ public void clockSub(){
         sec0 = sec2;
         semV(sem);
         sleep(1000);
+        if (CompTime(currentTime, alarmTime) == true){
+            MP3playfile(alarmFile, false)
+        }
     }
 }
 
