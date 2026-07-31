@@ -156,7 +156,7 @@ public void clockSub(){
         semV(sem);
         sleep(1000);
         if (CompTime(currentTime, alarmTime) == true){
-            MP3playfile(alarmFile, false)
+            MP3playfile(alarmFile, false);
         }
     }
 }
