@@ -1,0 +1,52 @@
+#include "file_manager.hmm"
+
+char[] buf = array(32);
+
+public int file_getDiskCapasity(){
+
+}
+public int file_getDiskUsage(){
+
+}
+public int file_read_dir(int fd, char[] name) {
+    if (read(fd, buf, 32) == 32) {
+        char flag = buf[0];
+        int attr = ord(buf[11]);
+
+        // ディレクトリ終端
+        if (flag == '\x00')
+            return -1;
+
+        // 有効なエントリだけ
+        if (flag != '\xe5' && (attr & 0x0a) == 0) {
+
+            int j = 0;
+
+            for (int i=0; i<8 && buf[i]!=' '; i=i+1) {
+                name[j] = buf[i];
+                j = j + 1;
+            }
+
+            if (buf[8] != ' ') {
+                name[j] = '.';
+                j = j + 1;
+
+                for (int i=8; i<11 && buf[i]!=' '; i=i+1) {
+                    name[j] = buf[i];
+                    j = j + 1;
+                }
+            }
+
+            name[j] = '\0';
+
+            if(attr & 0x10){//ディレクトリなら
+                return 1;
+            }
+            else{           //それ以外(ファイル)
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
