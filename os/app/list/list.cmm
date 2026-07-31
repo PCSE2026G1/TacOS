@@ -2,11 +2,13 @@
 #include "Lcd.hmm"
 
 public int select(char[] title, char[][] array, int size) {
+
+    int fileCount = 6;  //ファイルを表示できる数6個
     drawString(0,0,title);  //1行目にタイトル
     drawString(0,1,"");     //2行目に空白
 
-    int loop = 6;
-    if(size < 6){
+    int loop = fileCount;
+    if(size < fileCount){
         loop = size;
     }
     for (int i = 0; i < loop; i++) {
@@ -19,7 +21,6 @@ public int select(char[] title, char[][] array, int size) {
         int sw = readSw();
         int num = swToNum(sw);
         int start = 0; //描画開始位置
-        int fileCount = 6;  //ファイルを表示できる数6個
 
         if (num == 5) { // 下
             if (cursor < size - 1) {
