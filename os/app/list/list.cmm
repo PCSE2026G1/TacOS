@@ -1,0 +1,68 @@
+#include "list.hmm"
+#include "Lcd.hmm"
+
+public int select(char[] title, char[][] array, int size) {
+    int cursor = 0;
+    for(int i = cursor; i < cursor+6; i++){
+        drawString(0,i,array[i]);
+    }
+
+    for (;;) {
+        int sw = readSw();
+        int num = swToNum(sw);
+        int start = 0; //描画開始位置
+        int displaySize = 6;
+
+        if (num == 5) { // 下
+            if (cursor < size - 1) {
+                cursor++;
+
+                //cursorが、描画開始位置から6個を越えたらカーソルが画面外なので描画位置(start)を++
+                if (cursor >= start + displaySize) {
+                    start++;
+                }
+            }
+        }
+        else if (num == 1) { // 上
+            if (cursor > 0) {
+                cursor--;
+
+                //cursorが、描画開始位置の前に来たら描画開始位置(start)を--
+                if (cursor < start) {
+                    start--;
+                }
+            }
+        }
+
+        //もし画面サイズstartから6個が、サイズより大きくなったら
+        if (start + displaySize > size) {
+            start = size - displaySize;
+        }
+
+        // 表示
+        for (int i = 0; i < displaySize; i++) {
+            int index = start + i;
+
+            drawString(0, i, array[index]);
+        }
+    }
+    return cursor
+}
+
+int swToNum(int sw) {
+  int num = -1;
+  if ((sw & SW6)!=0) {                              // 6 番のスイッチが押された
+    num = 6;
+  } else if ((sw & SW5)!=0) {                       // 5 番のスイッチが押された
+    num = 5;
+  } else if ((sw & SW4)!=0) {                       // 4 番のスイッチが押された
+    num = 4;
+  } else if ((sw & SW3)!=0) {                       // 3 番のスイッチが押された
+    num = 3;
+  } else if ((sw & SW2)!=0) {                       // 2 番のスイッチが押された
+    num = 2;
+  } else if ((sw & SW1)!=0) {                       // 1 番のスイッチが押された
+    num = 1;
+  }
+  return num;
+}
