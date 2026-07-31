@@ -5,9 +5,12 @@ public int select(char[] title, char[][] array, int size) {
     drawString(0,0,title);  //1行目にタイトル
     drawString(0,1,"");     //2行目に空白
 
-    for(int i = 2; i < 8; i++){     //2行目から7行目までファイル名をプロット
-        int index = i - 2;          //arrayにアクセスする場所はi-2
-        drawString(0,i,array[index]);
+    int loop = 6;
+    if(size < 6){
+        loop = size;
+    }
+    for (int i = 0; i < loop; i++) {
+        drawString(0, i+2, array[i]);
     }
 
 
@@ -44,11 +47,10 @@ public int select(char[] title, char[][] array, int size) {
             start = size - fileCount;
         }
 
-        // 表示
-        for (int i = 2; i < 8; i++) {
+        for (int i = 0; i < loop; i++) {
             int index = start + i;
 
-            drawString(0, i, array[index]);
+            drawString(0, i+2, array[index]);
         }
     }
     return cursor
