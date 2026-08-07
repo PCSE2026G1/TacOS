@@ -23,10 +23,36 @@ _lcd_draw_string
     pop fp
     ret
 
-; void lcd_set_display(int display)
+; void lcd_set_display(int value)
 _lcd_set_display
-    ld g0, 2, sp
-    st g0, .display
+    push g3
+    ld g3, 4, sp
+
+    ; if (value) value = 1
+    cmp g3, #0
+    jz .lcd_set_display_l0
+    ld g3, #1
+
+.lcd_set_display_l0
+    ; buf[1] = 0xff
+    ld g0, #0xff
+    push g0
+
+    ; buf[0] = value | 0xae
+    ld g0, g3
+    or g0, #0xae
+    push g0
+
+    ; spiWriteLcdCom(buf)
+    ld g0, sp
+    push g0
+    call _spiWriteLcdCom
+    add sp, #6
+
+    ; display = value
+    st g3, .display
+
+    pop g3
     ret
 
 ; int lcd_get_display(void)
