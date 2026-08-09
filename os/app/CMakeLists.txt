@@ -96,6 +96,25 @@ list(TRANSFORM CMDIRS PREPEND "-I${CMAKE_CURRENT_SOURCE_DIR}/")
 list(APPEND CMCPPFLAGS ${CMDIRS})
 list(APPEND CMFLAGS ${CMCPPFLAGS})
 
+set(APP_PROCESSES
+)
+add_executable(generate_process_s)
+target_sources(generate_process_s
+    PRIVATE
+        src/generate_process_s.cpp
+)
+add_custom_command(
+    OUTPUT app_process.s
+    COMMAND generate_process_s app_process.s ${APP_PROCESSES}
+    VERBATIM
+)
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    target_compile_definitions(generate_process_s
+        PRIVATE
+            GENERATE_DEBUG
+    )
+endif()
+
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/font.cmm
     COMMAND make --silent -C ${CMAKE_CURRENT_SOURCE_DIR}/Font
@@ -111,4 +130,6 @@ add_tac_library(mod_0
     shellProc.cmm
     appUtil.cmm
     mp3Files.cmm
+
+    ${CMAKE_CURRENT_BINARY_DIR}/app_process.s
 )
