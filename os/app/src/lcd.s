@@ -1,5 +1,4 @@
-.display
-    dw 1
+.display dw 1
 
 ; void lcd_draw_string(unsigned int x, unsigned int y, const char* value)
 _lcd_draw_string
