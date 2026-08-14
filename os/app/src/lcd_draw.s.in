@@ -1,0 +1,60 @@
+; void lcd_draw(lcd_t* lcd, unsigned int x, unsigned int y, int value)
+_lcd_draw
+    push g3
+    push g4
+    push g5
+    push g6
+    ld g3, 10, sp  ; lcd
+    ld g4, 12, sp  ; x
+    ld g5, 14, sp  ; y
+    ld g6, 16, sp  ; value
+
+    cmp g6, #0
+    jz .lcd_draw_l0
+    ld g6, #0xffff
+
+.lcd_draw_l0
+    shll g5, #7  ; y * 128
+    add g4, g5  ; y * 128 + x
+    ld g2, g4  ; y * 128 + x
+    shrl g2, #4  ; y * 8 + x / 16
+    and g2, #0x38  ; (y & 7) * 8
+    ld g0, g4  ; y * 128 + x
+    and g0, #7  ; x & 7
+    or g2, g0  ; (y & 7) * 8 + (x & 7)
+    shrl g4, #3  ; y * 16 + x / 8
+    and g4, #15  ; x / 8
+    shrl g5, #10  ; y / 8
+    and g5, #7
+
+    ld g1, g2
+    and g1, #15
+    ld g0, #1
+    shll g0, g1  ; mask
+
+    ld g1, g5
+    shll g1, #4
+    or g1, g4
+    shll g1, #6
+    or g1, g2
+    shrl g1, #3
+    add g1, g3  ; &buf_value
+
+    xor g6, 0, g3  ; value ^ buf_value
+    and g6, g0  ; (value ^ buf_value) & mask
+    xor g6, 0, g3  ; ((value ^ buf_value) & mask) ^ buf_value
+    st g6, 0, g3
+
+    ld g0, #1
+    shll g0, g4  ; mask
+
+    ld g2, g5
+    shll g2, #1  ; &flag
+    or g0, 0, g2  ; mask | flag
+    st g0, 0, g2
+
+    pop g6
+    pop g5
+    pop g4
+    pop g3
+    ret

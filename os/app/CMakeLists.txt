@@ -129,6 +129,7 @@ define_struct(lcd_size lcd_align
 
 configure_file(src/lcd_init.s.in lcd_init.s)
 configure_file(src/lcd_flush.s.in lcd_flush.s)
+configure_file(src/lcd_draw.s.in lcd_draw.s)
 
 add_tac_library(mod_0
     spi.cmm
@@ -143,4 +144,5 @@ add_tac_library(mod_0
     src/lcd.s
     ${CMAKE_CURRENT_BINARY_DIR}/lcd_init.s
     ${CMAKE_CURRENT_BINARY_DIR}/lcd_flush.s
+    ${CMAKE_CURRENT_BINARY_DIR}/lcd_draw.s
 )
