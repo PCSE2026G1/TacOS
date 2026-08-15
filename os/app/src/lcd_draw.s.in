@@ -17,18 +17,21 @@ _lcd_draw
     shll g5, #7  ; y * 128
     add g4, g5  ; y * 128 + x
     ld g2, g4  ; y * 128 + x
-    shrl g2, #4  ; y * 8 + x / 16
-    and g2, #0x38  ; (y & 7) * 8
+    shrl g2, #7  ; y
+    and g2, #7  ; y & 7
     ld g0, g4  ; y * 128 + x
     and g0, #7  ; x & 7
-    or g2, g0  ; (y & 7) * 8 + (x & 7)
-    shrl g4, #3  ; y * 16 + x / 8
-    and g4, #15  ; x / 8
+    shll g0, #3  ; (x & 7) * 8
+    or g2, g0  ; (y & 7) + (x & 7) * 8
+    ld g5, g4  ; y * 128 + x
     shrl g5, #10  ; y / 8
     and g5, #7
+    shrl g4, #3  ; y * 16 + x / 8
+    and g4, #15  ; x / 8
 
     ld g1, g2
     and g1, #15
+    xor g1, #8
     ld g0, #1
     shll g0, g1  ; mask
 
@@ -37,19 +40,22 @@ _lcd_draw
     or g1, g4
     shll g1, #6
     or g1, g2
-    shrl g1, #3
+    shrl g1, #4
+    shll g1, #1
     add g1, g3  ; &buf_value
 
-    xor g6, 0, g3  ; value ^ buf_value
+    xor g6, 0, g1  ; value ^ buf_value
     and g6, g0  ; (value ^ buf_value) & mask
-    xor g6, 0, g3  ; ((value ^ buf_value) & mask) ^ buf_value
-    st g6, 0, g3
+    xor g6, 0, g1  ; ((value ^ buf_value) & mask) ^ buf_value
+    st g6, 0, g1
 
     ld g0, #1
     shll g0, g4  ; mask
 
     ld g2, g5
-    shll g2, #1  ; &flag
+    shll g2, #1
+    add g2, g3
+    add g2, #${lcd_flags}  ; &flags
     or g0, 0, g2  ; mask | flag
     st g0, 0, g2
 
