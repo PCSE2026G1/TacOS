@@ -12,34 +12,38 @@ _lcd_fill_rect
     ld g6, 20, sp  ; width
     ld g7, 22, sp  ; height
     ld g8, 24, sp  ; value
+    push g9
+    push g10
 
     push g8
     push g5
     push g4
     push g3
-    ld g2, #0  ; i
+    ld g10, #0  ; i
 
 .lcd_fill_rect_l0
     ld g0, g5  ; y
-    add g0, g2  ; y + i
+    add g0, g10  ; y + i
     st g0, 4, sp
-    ld g1, #0  ; j
+    ld g9, #0  ; j
 
 .lcd_fill_rect_l1
     ld g0, g4  ; x
-    add g0, g1  ; x + j
+    add g0, g9  ; x + j
     st g0, 2, sp
     call _lcd_draw
 
-    add g1, #1  ; j++
-    cmp g1, g6  ; j == width
+    add g9, #1  ; j++
+    cmp g9, g6  ; j == width
     jnz .lcd_fill_rect_l1
 
-    add g2, #1  ; i++
-    cmp g2, g7  ; i == height
+    add g10, #1  ; i++
+    cmp g10, g7  ; i == height
     jnz .lcd_fill_rect_l0
 
     add sp, #8
+    pop g10
+    pop g9
     pop g8
     pop g7
     pop g6

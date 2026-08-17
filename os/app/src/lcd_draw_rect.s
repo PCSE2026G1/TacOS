@@ -13,9 +13,9 @@ _lcd_draw_rect
     ld g7, 22, sp  ; height
     ld g8, 24, sp  ; value
 
-    ld g1, #1
+    ld g0, #1
     push g8
-    push g1
+    push g0
     push g6
     push g5
     push g4
@@ -31,7 +31,8 @@ _lcd_draw_rect
     ld g0, g5  ; y
     add g0, #1  ; y + 1
     st g0, 4, sp
-    st g1, 6, sp
+    ld g0, #1
+    st g0, 6, sp
     ld g0, g7  ; height
     sub g0, #2  ; height - 2
     st g0, 8, sp

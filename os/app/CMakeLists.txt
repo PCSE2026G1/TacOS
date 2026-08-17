@@ -87,6 +87,7 @@ set(CMDIRS
     ../tty
     ../sio
     ../app
+    src
 )
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     list(APPEND CMCPPFLAGS -DDEBUG)
