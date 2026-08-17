@@ -23,10 +23,12 @@
 #define VOID
 #define PTR(x) []x
 #define FPTR(t, x, params) void[]x
+#define STRUCT(t) void
 #else
 #define VOID void
 #define PTR(x) (*x)
 #define FPTR(t, x, params) t (*x)params
+#define STRUCT(t) t
 #endif
 
 #endif
