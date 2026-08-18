@@ -148,4 +148,5 @@ add_tac_library(mod_0
     ${CMAKE_CURRENT_BINARY_DIR}/lcd_draw.s
     src/lcd_draw_rect.s
     src/lcd_fill_rect.s
+    src/random.s
 )
