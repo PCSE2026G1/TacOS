@@ -88,6 +88,7 @@ set(CMDIRS
     ../sio
     ../app
     src
+    build
 )
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     list(APPEND CMCPPFLAGS -DDEBUG)
@@ -128,9 +129,26 @@ define_struct(lcd_size lcd_align
     lcd_flags 16 2
 )
 
+set(KEY_UP 5)
+set(KEY_LEFT 4)
+set(KEY_RIGHT 3)
+set(KEY_BACK 2)
+set(KEY_DOWN 1)
+set(KEY_ENTER 0)
+
+math(EXPR KEY_UP_MASK "1 << ${KEY_UP}")
+math(EXPR KEY_LEFT_MASK "1 << ${KEY_LEFT}")
+math(EXPR KEY_RIGHT_MASK "1 << ${KEY_RIGHT}")
+math(EXPR KEY_BACK_MASK "1 << ${KEY_BACK}")
+math(EXPR KEY_DOWN_MASK "1 << ${KEY_DOWN}")
+math(EXPR KEY_ENTER_MASK "1 << ${KEY_ENTER}")
+math(EXPR KEY_ALL_MASK "${KEY_UP_MASK} | ${KEY_LEFT_MASK} | ${KEY_RIGHT_MASK} | ${KEY_BACK_MASK} | ${KEY_DOWN_MASK} | ${KEY_ENTER_MASK}")
+
 configure_file(src/lcd_init.s.in lcd_init.s)
 configure_file(src/lcd_flush.s.in lcd_flush.s)
 configure_file(src/lcd_draw.s.in lcd_draw.s)
+configure_file(src/key.h.in key.h)
+configure_file(src/key.s.in key.s)
 
 add_tac_library(mod_0
     spi.cmm
@@ -149,4 +167,5 @@ add_tac_library(mod_0
     src/lcd_draw_rect.s
     src/lcd_fill_rect.s
     src/random.s
+    ${CMAKE_CURRENT_BINARY_DIR}/key.s
 )
