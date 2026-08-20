@@ -1,9 +1,14 @@
 #ifndef CMM_H
 #define CMM_H
 
-void locateXY(unsigned int x, unsigned int y);
-void putStr(const char* str);
+#include "cmmdef.h"
 
-void spiWriteLcdCom(const void* buf);
+extern void PTR(malloc(unsigned int size));
+extern void free(void PTR(ptr));
+
+extern void locateXY(unsigned int x, unsigned int y);
+extern void putStr(const char PTR(str));
+
+extern void spiWriteLcdCom(const void PTR(buf));
 
 #endif

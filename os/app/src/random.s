@@ -40,4 +40,6 @@ _llrand
     jmp .llrand_l0
 
 .llrand_l1
+    ld g0, .seed
+    shrl g0, #1
     ret

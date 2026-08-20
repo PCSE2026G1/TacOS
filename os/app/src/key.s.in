@@ -1,8 +1,11 @@
 ; static unsigned int key0 = 0
 .key0 dw 0
 
-; static unsigned int key1 = ${KEY_ALL_MASK}
-.key1 dw ${KEY_ALL_MASK}
+; static unsigned int key1 = 0
+.key1 dw 0
+
+; static unsigned int key2 = 0
+.key2 dw 0
 
 ; unsigned int key_read(void)
 _key_read
@@ -16,6 +19,15 @@ _key_read
     and g0, g1
     ret
 
+; void key_step(void)
+_key_step
+    ld g0, .key2
+    st g0, .key1
+
+    call _key_read
+    st g0, .key2
+    ret
+
 ; int key_pressed(unsigned int key)
 _key_pressed
     ld g0, #1  ; 1
@@ -27,12 +39,9 @@ _key_pressed
 
 ; int key_pressed_mask(unsigned int mask)
 _key_pressed_mask
-    call _key_read
-    ld g1, .key1
-    st g0, .key1
-
-    xor g1, g0
-    and g0, g1
+    ld g0, .key2
+    xor g0, .key1
+    and g0, .key2
     and g0, 2, sp
     jz .key_pressed_mask_l0
     ld g0, #1
