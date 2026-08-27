@@ -19,6 +19,7 @@
 #define KEY_ALL_MASK ${KEY_ALL_MASK}
 
 extern unsigned int key_read(VOID);
+extern void key_step(VOID);
 extern int key_pressed(unsigned int key);
 extern int key_pressed_mask(unsigned int mask);
 

@@ -12,6 +12,7 @@ typedef struct
 #endif
 
 extern void lcd_draw_string(unsigned int x, unsigned int y, const char PTR(str));
+extern void lcd_draw_dec(unsigned int x, unsigned int y, unsigned int num, unsigned int width);
 extern void lcd_set_display(int display);
 extern int lcd_get_display(VOID);
 

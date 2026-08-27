@@ -57,6 +57,15 @@ function(add_tac_library lib_name)
                 DEPFILE "${basename}.d"
                 VERBATIM
             )
+        elseif("${ext}" STREQUAL "c")
+            add_custom_command(
+                OUTPUT ${obj}
+                COMMAND cc -E -MD -MF "${basename}.d" -DCMMDEF ${CMCPPFLAGS} ${src} -o "${basename}.cmm"
+                COMMAND cm2e -c ${CMFLAGS} "${basename}.cmm"
+                DEPENDS ${src}
+                DEPFILE "${basename}.d"
+                VERBATIM
+            )
         endif()
         list(APPEND objs ${obj})
     endforeach()
@@ -168,4 +177,9 @@ add_tac_library(mod_0
     src/lcd_fill_rect.s
     src/random.s
     ${CMAKE_CURRENT_BINARY_DIR}/key.s
+    src/cmmdef.s
+    src/memset.s
+    src/swap.s
+    src/minesweeper0.s
+    src/minesweeper.c
 )
