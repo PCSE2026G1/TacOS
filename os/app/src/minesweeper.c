@@ -115,17 +115,17 @@ static unsigned int ms_open(void PTR(buf), unsigned int x, unsigned int y)
 
 static unsigned int ms_x(unsigned int j)
 {
-    return j * 7;
+    return j * 7 + 36;
 }
 static unsigned int ms_y(unsigned int i)
 {
-    return i * 7 + 8;
+    return i * 7 + 4;
 }
 
 static void ms_draw(STRUCT(lcd_t) PTR(lcd), const void PTR(buf),
         unsigned int cx, unsigned int cy, unsigned int rem)
 {
-    lcd_fill_rect(lcd, 0, 0, 128, 64, 0);
+    lcd_fill_rect(lcd, 36, 4, 56, 56, 0);
 
     for (unsigned int i = 0; i < 8; INC(i))
     {
@@ -164,6 +164,8 @@ extern void ms_play(VOID)
     void PTR(buf) = malloc(64 + 1024 + 16);
     STRUCT(lcd_t) PTR(lcd) = addp(buf, 64);
     memset(buf, 0, 64);
+    lcd_fill_rect(lcd, 0, 0, 128, 64, 0);
+    lcd_draw_rect(lcd, 35, 3, 58, 58, 1);
     key_step();
 
     unsigned int x = 1;
