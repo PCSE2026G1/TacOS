@@ -4,7 +4,7 @@
 #include "cmm.h"
 #include "memset.h"
 #include "random.h"
-#include "swap.h"
+#include "algorithm.h"
 #include "lcd.h"
 #include "key.h"
 

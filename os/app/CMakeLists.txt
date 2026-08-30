@@ -178,8 +178,8 @@ add_tac_library(mod_0
     src/random.s
     ${CMAKE_CURRENT_BINARY_DIR}/key.s
     src/cmmdef.s
+    src/algorithm.c
     src/memset.s
-    src/swap.s
     src/minesweeper0.s
     src/minesweeper.c
 )

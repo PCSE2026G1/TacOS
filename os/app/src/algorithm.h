@@ -1,5 +1,5 @@
-#ifndef SWAP_H
-#define SWAP_H
+#ifndef ALGORITHM_H
+#define ALGORITHM_H
 
 #include "cmmdef.h"
 
