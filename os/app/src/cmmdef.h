@@ -55,6 +55,12 @@
 #define ORA(l, r) ((l) |= (r))
 #endif
 
+#ifdef CMMDEF
+#define NULL null
+#else
+#define NULL ((void*)0)
+#endif
+
 extern void PTR(addp(const void PTR(l), int r));
 extern void PTR(subp(const void PTR(l), int r));
 extern int subpp(const void PTR(l), const void PTR(r));

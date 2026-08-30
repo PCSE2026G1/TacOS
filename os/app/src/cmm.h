@@ -3,6 +3,9 @@
 
 #include "cmmdef.h"
 
+extern void dbgPutStr(const char PTR(str));
+extern void panic(const char PTR(msg), ...);
+
 extern void PTR(malloc(unsigned int size));
 extern void free(void PTR(ptr));
 
