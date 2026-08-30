@@ -8,10 +8,12 @@ extern void panic(const char PTR(msg), ...);
 
 extern void PTR(malloc(unsigned int size));
 extern void free(void PTR(ptr));
+extern void sleep(unsigned int ms);
 
 extern void locateXY(unsigned int x, unsigned int y);
 extern void putStr(const char PTR(str));
 
-extern void spiWriteLcdCom(const void PTR(buf));
+extern void spiWriteLcdCom(const char PTR(buf));
+extern void spiWriteLcdDat(const char PTR(buf), unsigned int len);
 
 #endif

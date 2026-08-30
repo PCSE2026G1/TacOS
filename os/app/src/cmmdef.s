@@ -46,6 +46,19 @@ _subpp2
     shrl g0, #1
     ret
 
+; unsigned int getp2(const void* p)
+_getp2
+    ld g0, 2, sp
+    ld g0, 0, g0
+    ret
+
+; void setp2(void* p, unsigned int value)
+_setp2
+    ld g0, 4, sp
+    ld g1, 2, sp
+    st g0, 0, g1
+    ret
+
 ; int cmpu(unsigned int l, unsigned int r)
 ; int cmpp(const void* l, const void* r)
 _cmpu

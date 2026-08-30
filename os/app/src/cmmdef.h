@@ -45,14 +45,22 @@
 #define ADDA(l, r) ((l) = (l) + (r))
 #define SUBA(l, r) ((l) = (l) - (r))
 #define MULA(l, r) ((l) = (l) * (r))
+#define DIVA(l, r) ((l) = (l) / (r))
+#define ANDA(l, r) ((l) = (l) & (r))
 #define ORA(l, r) ((l) = (l) | (r))
+#define SHRA(l, r) ((l) = (l) >> (r))
+#define SHLA(l, r) ((l) = (l) << (r))
 #else
 #define INC(x) (++(x))
 #define DEC(x) (--(x))
 #define ADDA(l, r) ((l) += (r))
 #define SUBA(l, r) ((l) -= (r))
 #define MULA(l, r) ((l) *= (r))
+#define DIVA(l, r) ((l) /= (r))
+#define ANDA(l, r) ((l) &= (r))
 #define ORA(l, r) ((l) |= (r))
+#define SHRA(l, r) ((l) >>= (r))
+#define SHLA(l, r) ((l) <<= (r))
 #endif
 
 #ifdef CMMDEF
@@ -69,6 +77,8 @@ extern void setp(void PTR(p), int value);
 extern void PTR(addp2(const void PTR(l), int r));
 extern void PTR(subp2(const void PTR(l), int r));
 extern int subpp2(const void PTR(l), const void PTR(r));
+extern unsigned int getp2(const void PTR(p));
+extern void setp2(void PTR(p), unsigned int value);
 extern int cmpu(unsigned int l, unsigned int r);
 extern int cmpp(const void PTR(l), const void PTR(r));
 
