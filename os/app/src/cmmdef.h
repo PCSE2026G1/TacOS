@@ -69,6 +69,8 @@ extern void setp(void PTR(p), int value);
 extern void PTR(addp2(const void PTR(l), int r));
 extern void PTR(subp2(const void PTR(l), int r));
 extern int subpp2(const void PTR(l), const void PTR(r));
+extern int cmpu(unsigned int l, unsigned int r);
+extern int cmpp(const void PTR(l), const void PTR(r));
 
 #ifdef CMMDEF
 extern unsigned int cond3(...);

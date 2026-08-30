@@ -46,6 +46,23 @@ _subpp2
     shrl g0, #1
     ret
 
+; int cmpu(unsigned int l, unsigned int r)
+; int cmpp(const void* l, const void* r)
+_cmpu
+_cmpp
+    ld g0, 2, sp
+    sub g0, 4, sp
+    jc .cmpu_c
+    jz .cmpu_ret
+    ld g0, #1
+    jmp .cmpu_ret
+
+.cmpu_c
+    ld g0, #-1
+
+.cmpu_ret
+    ret
+
 ; unsigned int cond3(int cond, unsigned int l, unsigned int r)
 _cond3
     ld g0, 2, sp
