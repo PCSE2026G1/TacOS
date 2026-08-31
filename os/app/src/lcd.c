@@ -25,6 +25,7 @@ extern void lcd_draw_dec(unsigned int x, unsigned int y, int num, unsigned int w
     if (width >= size)
         size = width + 1;
     char PTR(buf) = malloc(size);
+    assert(buf != NULL);
     char PTR(str) = addp(buf, size - width - 1);
     char PTR(p) = itoa(buf, size, num);
     if (cmpp(p, str) > 0)
