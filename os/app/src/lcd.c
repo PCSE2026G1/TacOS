@@ -3,7 +3,7 @@
 #include "cmmdef.h"
 #include "cmm.h"
 #include "assert.h"
-#include "memset.h"
+#include "string.h"
 
 static int display = 1;
 

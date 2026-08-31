@@ -1,5 +1,5 @@
-#ifndef MEMSET_H
-#define MEMSET_H
+#ifndef STRING_H
+#define STRING_H
 
 #include "cmmdef.h"
 
