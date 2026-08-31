@@ -21,40 +21,18 @@ extern void lcd_draw_dec(unsigned int x, unsigned int y, int num, unsigned int w
     assert(cmpu(x, 16) < 0);
     assert(cmpu(x + width, 16) <= 0);
     assert(cmpu(y, 8) < 0);
-    unsigned int size = 7;
-    if (width > size)
-        size = width;
-    char PTR(buf) = malloc(size + 1);
-    buf[size] = '\0';
-    int sign = 0;
-    if (num < 0)
+    unsigned int size = 8;
+    if (width >= size)
+        size = width + 1;
+    char PTR(buf) = malloc(size);
+    char PTR(str) = addp(buf, size - width - 1);
+    char PTR(p) = itoa(buf, size, num);
+    if (cmpp(p, str) > 0)
     {
-        sign = 1;
-        num = -num;
-    }
-    unsigned int i = size;
-
-    do
-    {
-        DEC(i);
-        int ch = 0x30 + (num % 10);
-        setp(addp(buf, i), ch);
-        DIVA(num, 10);
-    } while (COND(num));
-
-    if (COND(sign))
-    {
-        DEC(i);
-        buf[i] = '-';
+        p = memset(str, ' ', subpp(p, str));
     }
 
-    while (cmpu(i, size - width) > 0)
-    {
-        DEC(i);
-        buf[i] = ' ';
-    }
-
-    lcd_draw_string(x, y, addp(buf, i));
+    lcd_draw_string(x, y, p);
     free(buf);
 }
 
