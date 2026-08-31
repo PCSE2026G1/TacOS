@@ -153,11 +153,11 @@ math(EXPR KEY_DOWN_MASK "1 << ${KEY_DOWN}")
 math(EXPR KEY_ENTER_MASK "1 << ${KEY_ENTER}")
 math(EXPR KEY_ALL_MASK "${KEY_UP_MASK} | ${KEY_LEFT_MASK} | ${KEY_RIGHT_MASK} | ${KEY_BACK_MASK} | ${KEY_DOWN_MASK} | ${KEY_ENTER_MASK}")
 
-configure_file(src/lcd_init.s.in lcd_init.s)
-configure_file(src/lcd_flush.s.in lcd_flush.s)
-configure_file(src/lcd_draw.s.in lcd_draw.s)
+# configure_file(src/lcd_init.s.in lcd_init.s)
+# configure_file(src/lcd_flush.s.in lcd_flush.s)
+# configure_file(src/lcd_draw.s.in lcd_draw.s)
 configure_file(src/key.h.in key.h)
-configure_file(src/key.s.in key.s)
+# configure_file(src/key.s.in key.s)
 
 add_tac_library(mod_0
     spi.cmm
@@ -171,7 +171,7 @@ add_tac_library(mod_0
     ${CMAKE_CURRENT_BINARY_DIR}/app_process.s
     src/lcd.c
     src/random.s
-    ${CMAKE_CURRENT_BINARY_DIR}/key.s
+    src/key.c
     src/cmmdef.s
     src/algorithm.c
     src/string.c

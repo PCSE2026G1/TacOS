@@ -6,6 +6,9 @@
 extern void dbgPutStr(const char PTR(str));
 extern void panic(const char PTR(msg), ...);
 
+extern unsigned int in(unsigned int p);
+extern void out(unsigned int p, unsigned int v);
+
 extern void PTR(malloc(unsigned int size));
 extern void free(void PTR(ptr));
 extern void sleep(unsigned int ms);
