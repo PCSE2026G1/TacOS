@@ -30,7 +30,7 @@
 #include <mm.hmm>
 #include <fs.hmm>
 #include "kernel.hmm"
-#include <Clock.hmm>
+#include "Clock.hmm"
 
 #ifndef EMBEDDED
 #include <pm.hmm>
