@@ -2,6 +2,36 @@
 #include "cmmdef.h"
 #include "assert.h"
 
+extern void PTR(memcpy(void PTR(dest), const void PTR(src), unsigned int count))
+{
+    assert(dest != NULL);
+    assert(src != NULL);
+    assert(cmpp(dest, src) <= 0 || cmpp(dest, addp(src, count)) >= 0);
+    for (unsigned int i = 0; i != count; INC(i))
+        setp(addp(dest, i), getp(addp(src, i)));
+    return dest;
+}
+
+extern void PTR(memmovr(void PTR(dest), const void PTR(src), unsigned int count))
+{
+    assert(dest != NULL);
+    assert(src != NULL);
+    assert(cmpp(dest, src) >= 0 || cmpp(addp(dest, count), src) <= 0);
+    for (unsigned int i = count - 1; i != 0xffff; DEC(i))
+        setp(addp(dest, i), getp(addp(src, i)));
+    return dest;
+}
+
+extern void PTR(memmove(void PTR(dest), const void PTR(src), unsigned int count))
+{
+    int cmp = cmpp(dest, src);
+    if (cmp < 0)
+        return memcpy(dest, src, count);
+    if (cmp > 0)
+        return memmovr(dest, src, count);
+    return dest;
+}
+
 extern void PTR(memset(void PTR(dest), int ch, unsigned int count))
 {
     assert(dest != NULL);
