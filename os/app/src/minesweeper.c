@@ -177,6 +177,13 @@ static void play(void PTR(buf))
     int update = 1;
     do
     {
+        if (rem == 64 - MS_COUNT)
+        {
+#ifndef DEBUG
+            llrand();
+#endif
+        }
+
         if (COND(update))
         {
             ms_draw(lcd, buf, x, y, rem);
