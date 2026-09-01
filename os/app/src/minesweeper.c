@@ -187,6 +187,10 @@ static void play(void PTR(buf))
             sleep(1);
         }
 
+#ifdef DEBUG
+        lcd_draw_hex(14, 6, key_get(), 2);
+#endif
+
         unsigned int x0 = x;
         unsigned int y0 = y;
         key_step();

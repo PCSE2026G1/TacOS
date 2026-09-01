@@ -37,17 +37,30 @@ extern void lcd_draw_dec(unsigned int x, unsigned int y, int num, unsigned int w
     free(buf);
 }
 
+extern void lcd_draw_hex(unsigned int x, unsigned int y, unsigned int num, unsigned int width)
+{
+    assert(cmpu(x, 16) < 0);
+    assert(cmpu(x + width, 16) <= 0);
+    assert(cmpu(y, 8) < 0);
+    char PTR(buf) = malloc(width + 1);
+    assert(buf != NULL);
+    itox(buf, width + 1, num);
+    lcd_draw_string(x, y, buf);
+    free(buf);
+}
+
 extern void lcd_set_display(int x)
 {
     if (COND(x))
-        x = 1;
-
-    char PTR(buf) = malloc(2);
-    setp(buf, x | 0xae);
-    buf[1] = '\xff';
-    spiWriteLcdCom(buf);
-    free(buf);
-    display = x;
+    {
+        spiWriteLcdCom("\xaf\xff");
+        display = 1;
+    }
+    else
+    {
+        spiWriteLcdCom("\xae\xff");
+        display = 0;
+    }
 }
 
 extern int lcd_get_display(VOID)
