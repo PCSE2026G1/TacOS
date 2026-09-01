@@ -60,7 +60,7 @@ int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザ�
 MakePCB(shellMem);                                  // APPのPCBとスタック領域
 MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
 MakePCB(ClockMem);
-MakePCM(ClockSubMem);
+MakePCB(ClockSubMem);
 int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
 int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
 #endif
@@ -102,7 +102,7 @@ public void regProc()  {
   spiInit();
 
   ClockInit();
-  newProc(addrof(clockMain),0,0,EI|KERN, _AtoA(clockMem), null);
+  newProc(addrof(clockMain),0,0,EI|KERN, _AtoA(ClockMem), null);
   schProc(_AtoA(ClockMem));
   newProc(addrof(clockSub),1,0,EI|KERN, _AtoA(ClockSubMem), null);
   schProc(_AtoA(ClockSubMem));

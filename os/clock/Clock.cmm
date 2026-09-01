@@ -162,5 +162,5 @@ public void clockSub(){
 }
 
 public void ClockInit(){
-    sem = newSem(0);
+    sem = newSem(1);
 }

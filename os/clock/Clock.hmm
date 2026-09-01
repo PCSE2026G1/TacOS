@@ -14,4 +14,8 @@ public void setFile(char[] file);
 
 public void setTimer(Time time);
 
+public void clockMain();
+public void clockSub();
+public void ClockInit();
+
 #endif

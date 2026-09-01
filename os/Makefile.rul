@@ -45,6 +45,7 @@ ifndef EMBEDDED
 CMFLAGS+=-I../pm                # 汎用版にだけpmがある
 else
 CMFLAGS+=-I../app               # 組込版にはappがある(ttyも標準では使用しない．．．)
+CMFLAGS+=-I../clock             # Clock の公開インタフェース
 endif
 
 ifdef EMBEDDED
