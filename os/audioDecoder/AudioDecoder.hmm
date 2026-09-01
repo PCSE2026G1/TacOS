@@ -1,0 +1,15 @@
+#ifndef AUDIODECODER_HMM
+#define AUDIODECODER_HMM
+
+public void setVolume(int volume);
+public int getVolume();
+public void setSpeed(int speed);
+public int getSpeed();
+public int getPosition();
+public void MP3playfile(char[] file, boolean save);
+public void MP3stop();
+public void decoder(char[] buf, int size);
+public int getTotalTime();
+public int getCurrentTime();
+
+#endif
