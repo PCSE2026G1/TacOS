@@ -1,0 +1,14 @@
+; void lcd_init(lcd_t* lcd)
+_lcd_init
+    ld g0, #0
+    ld g1, 2, sp
+    add g1, #${lcd_flags}
+    ld g2, #8
+
+.lcd_init_l0
+    st g0, 0, g1
+    add g1, #2
+    sub g2, #1
+    jnz .lcd_init_l0
+
+    ret
