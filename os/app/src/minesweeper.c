@@ -155,9 +155,12 @@ static void ms_draw(STRUCT(lcd_t) PTR(lcd), const void PTR(buf),
 
     lcd_flush(lcd);
 
-    if (rem < 1 || rem > 64)
-        rem = 0;
-    lcd_draw_dec(14, 7, rem, 2);
+    if (rem >= 1 && rem <= 64)
+        lcd_draw_dec(14, 7, rem, 2);
+    else if (rem == 0)
+        lcd_draw_string(14, 7, ":)");
+    else
+        lcd_draw_string(14, 7, ":(");
 }
 
 static void play(void PTR(buf))
@@ -171,10 +174,21 @@ static void play(void PTR(buf))
     unsigned int x = 1;
     unsigned int y = 1;
     unsigned int rem = 64 - MS_COUNT;
+    int update = 1;
     do
     {
-        ms_draw(lcd, buf, x, y, rem);
+        if (COND(update))
+        {
+            ms_draw(lcd, buf, x, y, rem);
+            update = 0;
+        }
+        else
+        {
+            sleep(1);
+        }
 
+        unsigned int x0 = x;
+        unsigned int y0 = y;
         key_step();
         if (COND(key_pressed(KEY_UP)) && y >= 1)
             DEC(y);
@@ -184,11 +198,14 @@ static void play(void PTR(buf))
             INC(x);
         if (COND(key_pressed(KEY_DOWN)) && y < 7)
             INC(y);
+        if (x != x0 || y != y0)
+            update = 1;
 
         if (COND(key_pressed(KEY_BACK)))
         {
             void PTR(p) = ms_ptr(buf, x, y);
             setp(p, getp(p) ^ MS_FLAGGED_MASK);
+            update = 1;
         }
         if (COND(key_pressed(KEY_ENTER)))
         {
@@ -196,6 +213,7 @@ static void play(void PTR(buf))
                 ms_init(buf, x, y);
 
             SUBA(rem, ms_open(buf, x, y));
+            update = 1;
         }
     } while (rem >= 1 && rem <= 64);
 
@@ -204,10 +222,10 @@ static void play(void PTR(buf))
         for (unsigned int j = 0; j < 8; INC(j))
         {
             void PTR(p) = ms_ptr(buf, j, i);
-            setp(p, getp(p) | MS_OPENED_MASK);
+            setp(p, (getp(p) | MS_OPENED_MASK) & ~MS_FLAGGED_MASK);
         }
     }
-    ms_draw(lcd, buf, x, y, 0);
+    ms_draw(lcd, buf, x, y, rem);
 
     do
     {
