@@ -7,6 +7,7 @@
 #include "algorithm.h"
 #include "lcd.h"
 #include "key.h"
+#include "stacksafe.h"
 
 static void PTR(ms_ptr(const void PTR(buf), unsigned int x, unsigned int y))
 {
@@ -159,9 +160,8 @@ static void ms_draw(STRUCT(lcd_t) PTR(lcd), const void PTR(buf),
     lcd_draw_dec(14, 7, rem, 2);
 }
 
-extern void ms_play(VOID)
+static void play(void PTR(buf))
 {
-    void PTR(buf) = malloc(64 + 1024 + 16);
     STRUCT(lcd_t) PTR(lcd) = addp(buf, 64);
     memset(buf, 0, 64);
     lcd_fill_rect(lcd, 0, 0, 128, 64, 0);
@@ -213,6 +213,11 @@ extern void ms_play(VOID)
     {
         key_step();
     } while (!COND(key_pressed(KEY_ENTER)));
+}
 
+extern void ms_play(VOID)
+{
+    void PTR(buf) = malloc(1536);
+    stacksafe(buf, 1536, INT_ADDR(play), 1, buf);
     free(buf);
 }

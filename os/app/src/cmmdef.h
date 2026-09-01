@@ -32,6 +32,12 @@
 #endif
 
 #ifdef CMMDEF
+#define INT_ADDR(x) addrof(x)
+#else
+#define INT_ADDR(x) ((unsigned int)&(x))
+#endif
+
+#ifdef CMMDEF
 #define COND(x) ((x) != 0)
 #else
 #define COND(x) (x)
