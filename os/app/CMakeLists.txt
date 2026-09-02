@@ -178,4 +178,6 @@ add_tac_library(mod_0
     src/algorithm.c
     src/string.c
     src/stacksafe.s
+    src/minesweeper0.s
+    src/minesweeper.c
 )
