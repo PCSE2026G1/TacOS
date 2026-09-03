@@ -43,7 +43,7 @@ _subp2
 _subpp2
     ld g0, 2, sp
     sub g0, 4, sp
-    shrl g0, #1
+    shra g0, #1
     ret
 
 ; unsigned int getp2(const void* p)
