@@ -159,6 +159,39 @@ math(EXPR KEY_ALL_MASK "${KEY_UP_MASK} | ${KEY_LEFT_MASK} | ${KEY_RIGHT_MASK} | 
 configure_file(src/key.h.in key.h)
 # configure_file(src/key.s.in key.s)
 
+if(BUILD_CLIB)
+    add_library(clib)
+    target_sources(clib
+        PRIVATE
+            src/algorithm.c
+            src/cmm.c
+            src/cmm2.c
+            src/cmmdef.c
+            src/key.c
+            src/lcd.c
+            src/random.c
+            src/tac_string.c
+
+        PUBLIC
+            FILE_SET HEADERS
+            BASE_DIRS src ${CMAKE_CURRENT_BINARY_DIR}
+            FILES
+                src/algorithm.h
+                src/cmm.h
+                src/cmmdef.h
+                ${CMAKE_CURRENT_BINARY_DIR}/key.h
+                src/lcd.h
+                src/random.h
+                src/stacksafe.h
+                src/tac_assert.h
+                src/tac_string.h
+    )
+    target_compile_definitions(clib
+        PRIVATE
+            CLIB
+    )
+endif()
+
 add_tac_library(mod_0
     spi.cmm
     font.cmm

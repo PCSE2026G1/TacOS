@@ -1,6 +1,10 @@
 #ifndef CMMDEF_H
 #define CMMDEF_H
 
+#ifdef CLIB
+#include <stddef.h>
+#endif
+
 #ifdef CMMDEF
 #define extern public
 #define static
@@ -69,10 +73,12 @@
 #define SHLA(l, r) ((l) <<= (r))
 #endif
 
+#ifndef CLIB
 #ifdef CMMDEF
 #define NULL null
 #else
 #define NULL ((void*)0)
+#endif
 #endif
 
 extern void PTR(addp(const void PTR(l), int r));

@@ -2,11 +2,18 @@
 #define TAC_STRING_H
 
 #include "cmmdef.h"
+#ifdef CLIB
+#include <string.h>
+#endif
 
+#ifndef CLIB
 extern void PTR(memcpy(void PTR(dest), const void PTR(src), unsigned int count));
 extern void PTR(memmove(void PTR(dest), const void PTR(src), unsigned int count));
+#endif
 extern void PTR(memmovr(void PTR(dest), const void PTR(src), unsigned int count));
+#ifndef CLIB
 extern void PTR(memset(void PTR(dest), int ch, unsigned int count));
+#endif
 
 extern char PTR(itoa(char PTR(buf), unsigned int size, int num));
 extern char PTR(itox(char PTR(buf), unsigned int size, unsigned int num));
