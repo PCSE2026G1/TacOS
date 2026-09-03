@@ -2,8 +2,8 @@
 
 #include "cmmdef.h"
 #include "cmm.h"
-#include "assert.h"
-#include "string.h"
+#include "tac_assert.h"
+#include "tac_string.h"
 
 static int display = 1;
 

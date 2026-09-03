@@ -1,7 +1,7 @@
 #include "key.h"
 #include "cmmdef.h"
 #include "cmm.h"
-#include "assert.h"
+#include "tac_assert.h"
 
 static unsigned int key0 = 0;
 static unsigned int key1 = 0;

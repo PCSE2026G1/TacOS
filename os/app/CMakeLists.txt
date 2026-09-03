@@ -176,6 +176,6 @@ add_tac_library(mod_0
     src/key.c
     src/cmmdef.s
     src/algorithm.c
-    src/string.c
+    src/tac_string.c
     src/stacksafe.s
 )

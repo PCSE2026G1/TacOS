@@ -1,6 +1,6 @@
-#include "string.h"
+#include "tac_string.h"
 #include "cmmdef.h"
-#include "assert.h"
+#include "tac_assert.h"
 
 extern void PTR(memcpy(void PTR(dest), const void PTR(src), unsigned int count))
 {

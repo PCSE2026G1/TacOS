@@ -1,8 +1,8 @@
 #include "debug.h"
 #include "cmmdef.h"
 #include "cmm.h"
-#include "assert.h"
-#include "string.h"
+#include "tac_assert.h"
+#include "tac_string.h"
 
 extern void puts(const char PTR(str))
 {
