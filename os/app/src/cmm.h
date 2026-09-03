@@ -11,7 +11,7 @@ extern void out(unsigned int p, unsigned int v);
 
 extern void PTR(malloc(unsigned int size));
 extern void free(void PTR(ptr));
-extern void sleep(unsigned int ms);
+extern int sleep(unsigned int ms);
 
 extern void locateXY(unsigned int x, unsigned int y);
 extern void putStr(const char PTR(str));
