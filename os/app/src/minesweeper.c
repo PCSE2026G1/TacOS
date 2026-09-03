@@ -2,7 +2,7 @@
 #include "minesweeper0.h"
 #include "cmmdef.h"
 #include "cmm.h"
-#include "string.h"
+#include "tac_string.h"
 #include "random.h"
 #include "algorithm.h"
 #include "lcd.h"
