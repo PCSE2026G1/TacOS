@@ -1,5 +1,5 @@
-#ifndef STRING_H
-#define STRING_H
+#ifndef TAC_STRING_H
+#define TAC_STRING_H
 
 #include "cmmdef.h"
 

@@ -1,5 +1,5 @@
-#ifndef ASSERT_H
-#define ASSERT_H
+#ifndef TAC_ASSERT_H
+#define TAC_ASSERT_H
 
 #include "cmmdef.h"
 #include "cmm.h"
