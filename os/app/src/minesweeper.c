@@ -248,6 +248,6 @@ static void play(void PTR(buf))
 extern void ms_play(VOID)
 {
     void PTR(buf) = malloc(1536);
-    stacksafe(buf, 1536, INT_ADDR(play), 1, buf);
+    STACKSAFE(buf, 1536, play, 1, buf);
     free(buf);
 }
