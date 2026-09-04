@@ -22,7 +22,7 @@
 #ifdef CMMDEF
 #define VOID
 #define PTR(x) []x
-#define FPTR(t, x, params) void[]x
+#define FPTR(t, x, params) int x
 #define STRUCT(t) void
 #else
 #define VOID void
@@ -33,8 +33,10 @@
 
 #ifdef CMMDEF
 #define INT_ADDR(x) addrof(x)
+#define F_ADDR(x) addrof(x)
 #else
 #define INT_ADDR(x) ((unsigned int)&(x))
+#define F_ADDR(x) (&(x))
 #endif
 
 #ifdef CMMDEF
@@ -44,6 +46,8 @@
 #endif
 #define AND(l, r) (COND(l) && COND(r))
 #define OR(l, r) (COND(l) || COND(r))
+
+#define SHRU(l, r) ((l) >> (r) & (0x7fff >> (r) << 1 | 1))
 
 #ifdef CMMDEF
 #define INC(x) ((x) = (x) + 1)
