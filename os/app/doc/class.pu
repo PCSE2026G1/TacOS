@@ -8,4 +8,5 @@
 !include ../src/stacksafe.h!stacksafe
 !include ../src/tac_assert.h!tac_assert
 !include ../src/tac_string.h!tac_string
+!include ../src/mahjong.h!mahjong
 @enduml
