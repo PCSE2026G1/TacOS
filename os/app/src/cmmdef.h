@@ -67,6 +67,7 @@ extern int call(...);
 #define DIVA(l, r) ((l) = (l) / (r))
 #define ANDA(l, r) ((l) = (l) & (r))
 #define ORA(l, r) ((l) = (l) | (r))
+#define XORA(l, r) ((l) = (l) ^ (r))
 #define SHRA(l, r) ((l) = (l) >> (r))
 #define SHLA(l, r) ((l) = (l) << (r))
 #else
@@ -78,6 +79,7 @@ extern int call(...);
 #define DIVA(l, r) ((l) /= (r))
 #define ANDA(l, r) ((l) &= (r))
 #define ORA(l, r) ((l) |= (r))
+#define XORA(l, r) ((l) ^= (r))
 #define SHRA(l, r) ((l) >>= (r))
 #define SHLA(l, r) ((l) <<= (r))
 #endif
