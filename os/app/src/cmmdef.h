@@ -22,19 +22,30 @@
 #ifdef CMMDEF
 #define VOID
 #define PTR(x) []x
-#define FPTR(t, x, params) void[]x
+#define FPTR(t, x, ...) int x
 #define STRUCT(t) void
 #else
 #define VOID void
 #define PTR(x) (*x)
-#define FPTR(t, x, params) t (*x)params
+#define FPTR(t, x, ...) t (*x)(__VA_ARGS__)
 #define STRUCT(t) t
 #endif
 
 #ifdef CMMDEF
 #define INT_ADDR(x) addrof(x)
+#define F_ADDR(x) addrof(x)
 #else
 #define INT_ADDR(x) ((unsigned int)&(x))
+#define F_ADDR(x) (&(x))
+#endif
+
+#ifdef CMMDEF
+extern int call(...);
+#define CALL(x, argc, ...) call(x, argc, __VA_ARGS__)
+#define CALL0(x) call(x, 0)
+#else
+#define CALL(x, argc, ...) ((x)(__VA_ARGS__))
+#define CALL0(x) CALL(x)
 #endif
 
 #ifdef CMMDEF
@@ -44,6 +55,8 @@
 #endif
 #define AND(l, r) (COND(l) && COND(r))
 #define OR(l, r) (COND(l) || COND(r))
+
+#define SHRU(l, r) ((l) >> (r) & (0x7fff >> (r) << 1 | 1))
 
 #ifdef CMMDEF
 #define INC(x) ((x) = (x) + 1)
@@ -87,6 +100,8 @@ extern unsigned int getp2(const void PTR(p));
 extern void setp2(void PTR(p), unsigned int value);
 extern int cmpu(unsigned int l, unsigned int r);
 extern int cmpp(const void PTR(l), const void PTR(r));
+
+extern unsigned int mulul(unsigned int l, unsigned int r);
 
 #ifdef CMMDEF
 extern unsigned int cond3(...);

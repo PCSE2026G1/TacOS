@@ -1,3 +1,25 @@
+; int call(unsigned int func, unsigned int argc, ...)
+_call
+    push fp
+    ld fp, sp
+
+    ld g1, 4, fp  ; func
+    ld g2, 6, fp  ; argc
+    add fp, #8
+
+.call_l0
+    sub g2, #1
+    jc .call_l1
+
+    ld g0, 0, fp
+    st g0, -4, fp
+    add fp, #2
+    jmp .call_l0
+
+.call_l1
+    pop fp
+    jmp 0, g1
+
 ; void* addp(const void* l, int r)
 _addp
     ld g0, 2, sp
@@ -74,6 +96,42 @@ _cmpp
     ld g0, #-1
 
 .cmpu_ret
+    ret
+
+; unsigned int mulul(unsigned int l, unsigned int r)
+_mulul
+    push fp
+    ld fp, sp
+
+    add fp, #4  ; &l1
+    ld g0, @fp  ; l1
+    add fp, #3  ; &r0
+    mul g0, @fp  ; l1 * r0
+    push g0  ; c = l1 * r0
+    and g0, #255  ; c & 255
+
+    ld g1, @fp  ; r0
+    sub fp, #2  ; &l0
+    mul g1, @fp  ; a = l0 * r0
+    shrl g1, #8  ; a >> 8
+    add g0, g1  ; (a >> 8) + (c & 255)
+
+    ld g1, @fp  ; l0
+    add fp, #1  ; &r1
+    mul g1, @fp  ; b = l0 * r1
+    add g0, g1  ; y = (a >> 8) + b + (c & 255)
+    shrl g0, #8  ; y >> 8
+
+    ld g1, @fp  ; r1
+    sub fp, #2  ; &l1
+    mul g1, @fp  ; d = l1 * r1
+    add g0, g1  ; (y >> 8) + d
+
+    sub fp, #6  ; &c1
+    add g0, @fp  ; y = (y >> 8) + (c >> 8) + d
+
+    add sp, #2
+    pop fp
     ret
 
 ; unsigned int cond3(int cond, unsigned int l, unsigned int r)

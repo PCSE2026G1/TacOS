@@ -1,7 +1,7 @@
-; static unsigned int seed[] = {0, 0, 0, 1}
-.seed dw 0
-    dw 0
-    dw 0
+; static unsigned int seed[] = {1, 1, 1, 1}
+.seed dw 1
+    dw 1
+    dw 1
     dw 1
 
 ; void llsrand(unsigned int x)
@@ -10,11 +10,9 @@ _llsrand
 
     ld g0, 2, sp  ; x
     st g0, 6, g1  ; seed[3] = x
-
-    ld g0, #0
-    st g0, 4, g1  ; seed[2] = 0
-    st g0, 2, g1  ; seed[1] = 0
-    st g0, 0, g1  ; seed[0] = 0
+    st g0, 4, g1  ; seed[2] = x
+    st g0, 2, g1  ; seed[1] = x
+    st g0, 0, g1  ; seed[0] = x
 
     ret
 
