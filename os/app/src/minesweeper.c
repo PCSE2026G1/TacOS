@@ -51,11 +51,7 @@ static void ms_init(void PTR(buf), unsigned int x, unsigned int y)
     for (unsigned int i = MS_COUNT; i < 64; INC(i))
         setp(addp(buf, i), 0);
 
-    for (unsigned int i = 0; i < 55; INC(i))
-    {
-        unsigned int j = ((llrand() >> 6) * 55) >> 9;
-        swap(addp(buf, i), addp(buf, j), 1);
-    }
+    shuffle(buf, 55, 1);
 
     for (unsigned int i = 0; i < 3; INC(i))
     {
