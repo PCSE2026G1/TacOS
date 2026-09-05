@@ -40,6 +40,8 @@
 #include <spi.hmm>
 #endif
 
+public void app_init_processes();
+
 // ----------------------------------------------------------------------------
 // カーネルプロセスの PCB とスタック領域を定義
 // ----------------------------------------------------------------------------
@@ -50,7 +52,7 @@ MakePCB(fsMem);                                     // FS のPCBとスタック�
 MakePCB(mmMem);                                     // MM のPCBとスタック領域
 
 #ifndef EMBEDDED
-// 汎用カーネルの場合  
+// 汎用カーネルの場合
 MakePCB(initMem);                                   // INITのPCBとスタック領域
 MakePCB(pmMem);                                     // PM のPCBとスタック領域
 int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザだけ）
@@ -94,6 +96,8 @@ public void regProc()  {
   // MP3 データ転送プロセス
   newProc(addrof(mp3Main),3,0,EI|KERN,_AtoA(mp3Mem),mp3Fds);
   schProc(_AtoA(mp3Mem));
+
+  app_init_processes();
 
   // SPIドライバの初期化（プロセス起動前にすべきことをやる）
   spiInit();
