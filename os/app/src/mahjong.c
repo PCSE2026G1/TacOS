@@ -240,8 +240,11 @@ static void play(void PTR(buf))
     } while (!COND(game));
 }
 
+extern void spiResetLcd(VOID);
+
 extern void mj_play(VOID)
 {
+    spiResetLcd();
     void PTR(buf) = malloc(512);
     assert(buf != NULL);
     STACKSAFE(buf, 512, play, 1, buf);
