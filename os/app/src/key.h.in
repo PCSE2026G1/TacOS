@@ -1,0 +1,27 @@
+#ifndef KEY_H
+#define KEY_H
+
+#include "cmmdef.h"
+
+#define KEY_UP ${KEY_UP}
+#define KEY_LEFT ${KEY_LEFT}
+#define KEY_RIGHT ${KEY_RIGHT}
+#define KEY_BACK ${KEY_BACK}
+#define KEY_DOWN ${KEY_DOWN}
+#define KEY_ENTER ${KEY_ENTER}
+
+#define KEY_UP_MASK ${KEY_UP_MASK}
+#define KEY_LEFT_MASK ${KEY_LEFT_MASK}
+#define KEY_RIGHT_MASK ${KEY_RIGHT_MASK}
+#define KEY_BACK_MASK ${KEY_BACK_MASK}
+#define KEY_DOWN_MASK ${KEY_DOWN_MASK}
+#define KEY_ENTER_MASK ${KEY_ENTER_MASK}
+#define KEY_ALL_MASK ${KEY_ALL_MASK}
+
+extern unsigned int key_read(VOID);
+extern void key_step(VOID);
+extern unsigned int key_get(VOID);
+extern int key_pressed(unsigned int key);
+extern int key_pressed_mask(unsigned int mask);
+
+#endif
