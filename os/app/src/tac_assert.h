@@ -1,6 +1,14 @@
 #ifndef TAC_ASSERT_H
 #define TAC_ASSERT_H
 
+/*
+ * @startuml(id=tac_assert)
+ * class tac_assert
+ * @enduml
+ *
+ * cmmdef ..> tac_assert
+ */
+
 #include "cmmdef.h"
 #include "cmm.h"
 

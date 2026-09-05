@@ -1,6 +1,41 @@
 #ifndef KEY_H
 #define KEY_H
 
+/*
+ * @startuml(id=key)
+ * class key {
+ *     -unsigned int key0
+ *     -unsigned int key1
+ *     -unsigned int key2
+ *     +unsigned int key_read(void)
+ *     +void key_step(void)
+ *     +unsigned int key_get(void)
+ *     +int key_pressed(unsigned int key)
+ *     +int key_pressed_mask(unsigned int mask)
+ * }
+ *
+ * enum KEY {
+ *     +KEY_UP
+ *     +KEY_LEFT
+ *     +KEY_RIGHT
+ *     +KEY_BACK
+ *     +KEY_DOWN
+ *     +KEY_ENTER
+ *     +KEY_UP_MASK
+ *     +KEY_LEFT_MASK
+ *     +KEY_RIGHT_MASK
+ *     +KEY_BACK_MASK
+ *     +KEY_DOWN_MASK
+ *     +KEY_ENTER_MASK
+ *     +KEY_ALL_MASK
+ * }
+ *
+ * cmmdef ..> key
+ * tac_assert ..> key
+ * key *-- KEY
+ * @enduml
+ */
+
 #include "cmmdef.h"
 
 #define KEY_UP ${KEY_UP}
