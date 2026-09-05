@@ -244,8 +244,11 @@ static void play(void PTR(buf))
     } while (!COND(key_pressed(KEY_ENTER)));
 }
 
+extern void spiResetLcd();
+
 extern void ms_play(VOID)
 {
+    spiResetLcd();
     void PTR(buf) = malloc(1536);
     STACKSAFE(buf, 1536, play, 1, buf);
     free(buf);

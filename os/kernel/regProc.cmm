@@ -58,9 +58,9 @@ MakePCB(pmMem);                                     // PM のPCBとスタック�
 int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザだけ）
 #else
 // 組み込みカーネルの場合
-MakePCB(shellMem);                                  // APPのPCBとスタック領域
+//MakePCB(shellMem);                                  // APPのPCBとスタック領域
 MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
-int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
+//int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
 int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
 #endif
 
@@ -90,8 +90,8 @@ public void regProc()  {
   // 組み込みカーネルの場合
   // （優先順位によって性能が変わる．優先順位は慎重に決めること）
   // MP3 プレーヤのメインプロセス
-  newProc(addrof(shellMain),2,0,EI|KERN,_AtoA(shellMem),shellFds);
-  schProc(_AtoA(shellMem));
+  //newProc(addrof(shellMain),2,0,EI|KERN,_AtoA(shellMem),shellFds);
+  //schProc(_AtoA(shellMem));
 
   // MP3 データ転送プロセス
   newProc(addrof(mp3Main),3,0,EI|KERN,_AtoA(mp3Mem),mp3Fds);
