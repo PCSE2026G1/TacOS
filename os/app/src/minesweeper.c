@@ -210,6 +210,9 @@ static void play(void PTR(buf))
 
         if (COND(key_pressed(KEY_BACK)))
         {
+            if (rem == 64 - MS_COUNT)
+                return;
+
             void PTR(p) = ms_ptr(buf, x, y);
             setp(p, getp(p) ^ MS_FLAGGED_MASK);
             update = 1;
