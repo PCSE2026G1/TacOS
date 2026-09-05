@@ -1,6 +1,33 @@
 #ifndef LCD_H
 #define LCD_H
 
+/*
+ * @startuml(id=lcd)
+ * class lcd {
+ *     -int display
+ *     -unsigned int lcd_pixel(unsigned int x, unsigned int y)
+ *     -int get_pixel(const lcd_t* lcd, unsigned int i)
+ *     -void set_pixel(lcd_t* lcd, unsigned int i, int value)
+ *     -int get_flag(const lcd_t* lcd, unsigned int i)
+ *     -void set_flag(lcd_t* lcd, unsigned int i, int value)
+ *     +void lcd_draw_string(unsigned int x, unsigned int y, const char* str)
+ *     +void lcd_draw_dec(unsigned int x, unsigned int y, int num, unsigned int width)
+ *     +void lcd_draw_hex(unsigned int x, unsigned int y, unsigned num, unsigned int width)
+ *     +void lcd_set_display(int display)
+ *     +int lcd_get_display(void)
+ *     +void lcd_init(lcd_t* lcd)
+ *     +void lcd_flush(lcd_t* lcd)
+ *     +void lcd_draw(lcd_t* lcd, unsigned int x, unsigned int y, int value)
+ *     +void lcd_draw_rect(lcd_t* lcd, unsigned int x, unsigned int y, unsigned int width, unsigned int height, int value)
+ *     +void lcd_fill_rect(lcd_t* lcd, unsigned int x, unsigned int y, unsigned int width, unsigned int height, int value)
+ * }
+ *
+ * cmmdef ..> lcd
+ * tac_assert ..> lcd
+ * tac_string --> lcd
+ * @enduml
+ */
+
 #include "cmmdef.h"
 
 #ifndef CMMDEF

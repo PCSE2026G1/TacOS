@@ -1,6 +1,27 @@
 #ifndef CMMDEF_H
 #define CMMDEF_H
 
+/*
+ * @startuml(id=cmmdef)
+ * class cmmdef {
+ *     +void* addp(const void* l, int r)
+ *     +void* subp(const void* l, int r)
+ *     +int subpp(const void* l, const void* r)
+ *     +unsigned int getp(const void* p)
+ *     +void setp(void* p, int value)
+ *     +void* addp2(const void* l, int r)
+ *     +void* subp2(const void* l, int r)
+ *     +int subpp2(const void* l, const void* r)
+ *     +unsigned int getp2(const void* p)
+ *     +void setp2(void* p, unsigned int value)
+ *     +int cmpu(unsigned int l, unsigned int r)
+ *     +int cmpp(const void* l, const void* r)
+ *     +unsigned int mulul(unsigned int l, unsigned int r)
+ *     +unsigned int cond3(int cond, unsigned int l, unsigned int r)
+ * }
+ * @enduml
+ */
+
 #ifdef CMMDEF
 #define extern public
 #define static

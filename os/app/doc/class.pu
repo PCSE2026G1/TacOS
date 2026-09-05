@@ -1,0 +1,11 @@
+@startuml
+!include ../src/algorithm.h!algorithm
+!include ../src/cmmdef.h!cmmdef
+!include ../src/debug.h!debug
+!include ../src/key.h.in!key
+!include ../src/lcd.h!lcd
+!include ../src/random.h!random
+!include ../src/stacksafe.h!stacksafe
+!include ../src/tac_assert.h!tac_assert
+!include ../src/tac_string.h!tac_string
+@enduml
