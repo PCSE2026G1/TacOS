@@ -15,14 +15,14 @@
  *     +void mj_play(void)
  * }
  *
- * cmmdef ..> mahjong
- * tac_assert ..> mahjong
- * algorithm --> mahjong
- * tac_string --> mahjong
- * key --> mahjong
- * lcd --> mahjong
- * random --> mahjong
- * stacksafe ..> mahjong
+ * mahjong --> cmmdef
+ * mahjong --> tac_assert
+ * mahjong --> algorithm
+ * mahjong --> tac_string
+ * mahjong --> key
+ * mahjong --> lcd
+ * mahjong --> random
+ * mahjong --> stacksafe
  * @enduml
  *
  * @startuml

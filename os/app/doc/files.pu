@@ -5,6 +5,7 @@
 () "debug.h" as debug_h
 () "key.h" as key_h
 () "lcd.h" as lcd_h
+() "mahjong.h" as mahjong_h
 () "random.h" as random_h
 () "stacksafe.h" as stacksafe_h
 () "tac_assert.h" as tac_assert_h
@@ -15,6 +16,7 @@
 [debug.s] as debug_s
 [key.c] as key_c
 [lcd.c] as lcd_c
+[mahjong.c] as mahjong_c
 [random.s] as random_s
 [stacksafe.s] as stacksafe_s
 [tac_string.c] as tac_string_c
@@ -42,6 +44,17 @@ lcd_c --> cmmdef_h
 lcd_c --> cmm_h
 lcd_c --> tac_assert_h
 lcd_c --> tac_string_h
+
+mahjong_h - mahjong_c
+mahjong_c --> cmmdef_h
+mahjong_c --> cmm_h
+mahjong_c --> tac_assert_h
+mahjong_c --> algorithm_h
+mahjong_c --> tac_string_h
+mahjong_c --> key_h
+mahjong_c --> lcd_h
+mahjong_c --> random_h
+mahjong_c --> stacksafe_h
 
 random_h - random_s
 
