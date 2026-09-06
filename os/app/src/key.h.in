@@ -30,8 +30,8 @@
  *     +KEY_ALL_MASK
  * }
  *
- * cmmdef ..> key
- * tac_assert ..> key
+ * key --> cmmdef
+ * key --> tac_assert
  * key *-- KEY
  * @enduml
  */

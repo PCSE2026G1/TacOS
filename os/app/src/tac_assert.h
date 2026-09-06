@@ -4,9 +4,9 @@
 /*
  * @startuml(id=tac_assert)
  * class tac_assert
- * @enduml
  *
- * cmmdef ..> tac_assert
+ * tac_assert ..> cmmdef
+ * @enduml
  */
 
 #include "cmmdef.h"

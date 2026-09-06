@@ -20,6 +20,47 @@
  *     +unsigned int cond3(int cond, unsigned int l, unsigned int r)
  * }
  * @enduml
+ *
+ * @startuml
+ * () ABI as i1
+ * () ABI as i2
+ *
+ * [Caller] - i1
+ * i2 - [Callee]
+ * [call function] ..> i1
+ * [call function] ..> i2
+ * @enduml
+ *
+ * @startuml
+ * start
+ * :func と argc をロードする;
+ * :フレームポインタを引数の最初に設定する;
+ * while (argc が 0 より大きい)
+ *     :argc から 1 を引く;
+ *     :フレームポインタが指す値を 4 バイト前にストアする;
+ *     :フレームポインタに 2 を足す;
+ * endwhile
+ * :フレームポインタを復元する;
+ * :func が指すアドレスに移動する;
+ * stop
+ * @enduml
+ *
+ * @startuml
+ * start
+ * :l の上位 8 ビットを l1, 下位 8 ビットを l0 とする
+ * r の上位 8 ビットを r1, 下位 8 ビットを r0 とする;
+ * :l0 * r0 を a とする
+ * l0 * r1 を b とする
+ * l1 * r0 を c とする
+ * l1 * r1 を d とする;
+ * :a の上位 8 ビットと c の下位 8 ビットを足す;
+ * :演算結果に b を足す;
+ * :演算結果を 8 ビット右シフトする;
+ * :演算結果に d を足す;
+ * :演算結果に c の上位 8 ビットを足す;
+ * :演算結果を返す;
+ * stop
+ * @enduml
  */
 
 #ifdef CMMDEF

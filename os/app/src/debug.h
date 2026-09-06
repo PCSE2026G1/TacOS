@@ -9,9 +9,9 @@
  *     +void putx(unsigned int num)
  * }
  *
- * cmmdef ..> debug
- * tac_assert ..> debug
- * tac_string --> debug
+ * debug ..> cmmdef
+ * debug --> tac_assert
+ * debug --> tac_string
  * @enduml
  */
 

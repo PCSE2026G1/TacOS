@@ -12,8 +12,8 @@
  *     +char* itox(char* buf, unsigned int size, unsigned int num)
  * }
  *
- * cmmdef ..> tac_string
- * tac_assert ..> tac_string
+ * tac_string --> cmmdef
+ * tac_string --> tac_assert
  * @enduml
  */
 

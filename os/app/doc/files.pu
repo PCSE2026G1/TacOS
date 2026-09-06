@@ -1,0 +1,53 @@
+@startuml
+() "algorithm.h" as algorithm_h
+() "cmm.h" as cmm_h
+() "cmmdef.h" as cmmdef_h
+() "debug.h" as debug_h
+() "key.h" as key_h
+() "lcd.h" as lcd_h
+() "random.h" as random_h
+() "stacksafe.h" as stacksafe_h
+() "tac_assert.h" as tac_assert_h
+() "tac_string.h" as tac_string_h
+[algorithm.c] as algorithm_c
+[cmmdef.s] as cmmdef_s
+[debug.c] as debug_c
+[debug.s] as debug_s
+[key.c] as key_c
+[lcd.c] as lcd_c
+[random.s] as random_s
+[stacksafe.s] as stacksafe_s
+[tac_string.c] as tac_string_c
+
+algorithm_h - algorithm_c
+algorithm_c --> cmmdef_h
+algorithm_c --> random_h
+
+cmmdef_h - cmmdef_s
+
+debug_h - debug_c
+debug_h - debug_s
+debug_c --> cmmdef_h
+debug_c --> cmm_h
+debug_c --> tac_assert_h
+debug_c --> tac_string_h
+
+key_h - key_c
+key_c --> cmmdef_h
+key_c --> cmm_h
+key_c --> tac_assert_h
+
+lcd_h - lcd_c
+lcd_c --> cmmdef_h
+lcd_c --> cmm_h
+lcd_c --> tac_assert_h
+lcd_c --> tac_string_h
+
+random_h - random_s
+
+stacksafe_h - stacksafe_s
+
+tac_string_h - tac_string_c
+tac_string_c --> cmmdef_h
+tac_string_c --> tac_assert_h
+@enduml
