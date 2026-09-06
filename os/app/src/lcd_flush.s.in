@@ -1,0 +1,60 @@
+; void lcd_flush(lcd_t* lcd)
+_lcd_flush
+    push g3
+    ld g3, 4, sp  ; lcd->buf
+    push g4
+    ld g4, g3
+    add g4, #${lcd_flags}  ; lcd->flags
+    push g5
+    push g6
+    ld g6, #0  ; y
+
+.lcd_flush_l0
+    ld g5, #0  ; x
+
+.lcd_flush_l1
+    ld g1, g6  ; y
+    shll g1, #1  ; y * 2
+    add g1, g4  ; &lcd->flags[y]
+    ld g0, 0, g1  ; lcd->flags[y]
+    shrl g0, g5  ; lcd->flags[y] >> x
+    and g0, #1  ; (lcd->flags[y] >> x) & 1
+    jz .lcd_flush_l1_continue
+
+    push g6
+    push g5
+    call _locateXY
+    add sp, #4
+
+    ld g1, g6  ; y
+    shll g1, #4  ; y * 16
+    or g1, g5  ; y * 16 + x
+    shll g1, #3  ; (y * 16 + x) * 4 * 2
+    add g1, g3  ; &lcd->buf[(y * 16 + x) * 4]
+
+    ld g0, #8
+    push g0
+    push g1
+    call _spiWriteLcdDat
+    add sp, #4
+
+.lcd_flush_l1_continue
+    add g5, #1
+    cmp g5, #16
+    jnz .lcd_flush_l1
+
+    ld g1, g6  ; y
+    shll g1, #1  ; y * 2
+    add g1, g4  ; &lcd->flags[y]
+    ld g0, #0
+    st g0, 0, g1  ; lcd->flags[y] = 0
+
+    add g6, #1
+    cmp g6, #8
+    jnz .lcd_flush_l0
+
+    pop g6
+    pop g5
+    pop g4
+    pop g3
+    ret
