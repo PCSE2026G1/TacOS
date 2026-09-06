@@ -7,7 +7,7 @@
  *     +int stacksafe(void* buf, unsigned int size, unsigned int func, unsigned int argc, ...)
  * }
  *
- * cmmdef ..> stacksafe
+ * stacksafe ..> cmmdef
  * @enduml
  */
 

@@ -6,7 +6,7 @@
  * class tac_assert
  * @enduml
  *
- * cmmdef ..> tac_assert
+ * tac_assert ..> cmmdef
  */
 
 #include "cmmdef.h"

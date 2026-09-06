@@ -9,7 +9,7 @@
  *     +int llrand(void)
  * }
  *
- * cmmdef ..> random
+ * random ..> cmmdef
  * @enduml
  */
 

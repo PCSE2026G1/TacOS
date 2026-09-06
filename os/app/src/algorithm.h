@@ -13,8 +13,8 @@
  *     +void insert(void* ptr, unsigned int count, unsigned int size, int (*comp)(const void*, const void*))
  * }
  *
- * cmmdef ..> algorithm
- * random --> algorithm
+ * algorithm --> cmmdef
+ * algorithm --> random
  * @enduml
  */
 
