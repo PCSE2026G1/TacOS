@@ -5,6 +5,8 @@
 () "debug.h" as debug_h
 () "key.h" as key_h
 () "lcd.h" as lcd_h
+() "minesweeper.h" as minesweeper_h
+() "minesweeper0.h" as minesweeper0_h
 () "random.h" as random_h
 () "stacksafe.h" as stacksafe_h
 () "tac_assert.h" as tac_assert_h
@@ -15,6 +17,8 @@
 [debug.s] as debug_s
 [key.c] as key_c
 [lcd.c] as lcd_c
+[minesweeper.c] as minesweeper_c
+[minesweeper0.s] as minesweeper0_s
 [random.s] as random_s
 [stacksafe.s] as stacksafe_s
 [tac_string.c] as tac_string_c
@@ -42,6 +46,20 @@ lcd_c --> cmmdef_h
 lcd_c --> cmm_h
 lcd_c --> tac_assert_h
 lcd_c --> tac_string_h
+
+minesweeper_h - minesweeper_c
+minesweeper_c --> minesweeper0_h
+minesweeper_c --> cmmdef_h
+minesweeper_c --> cmm_h
+minesweeper_c --> tac_string_h
+minesweeper_c --> random_h
+minesweeper_c --> algorithm_h
+minesweeper_c --> lcd_h
+minesweeper_c --> key_h
+minesweeper_c --> stacksafe_h
+
+minesweeper0_h - minesweeper0_s
+minesweeper0_s --> lcd_h
 
 random_h - random_s
 

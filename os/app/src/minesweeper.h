@@ -24,13 +24,13 @@
  * }
  *
  * minesweeper *-- MS
- * cmmdef ..> minesweeper
- * tac_string --> minesweeper
- * random --> minesweeper
- * algorithm --> minesweeper
- * lcd --> minesweeper
- * key --> minesweeper
- * stacksafe ..> minesweeper
+ * minesweeper --> cmmdef
+ * minesweeper --> tac_string
+ * minesweeper --> random
+ * minesweeper --> algorithm
+ * minesweeper --> lcd
+ * minesweeper --> key
+ * minesweeper --> stacksafe
  * @enduml
  *
  * @startuml(id=minesweeper_states)
