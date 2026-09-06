@@ -22,6 +22,12 @@
  *     +void lcd_fill_rect(lcd_t* lcd, unsigned int x, unsigned int y, unsigned int width, unsigned int height, int value)
  * }
  *
+ * struct lcd_t {
+ *     +unsigned int buf[512]
+ *     +unsigned int flags[8]
+ * }
+ *
+ * lcd *-- lcd_t
  * lcd --> cmmdef
  * lcd --> tac_assert
  * lcd --> tac_string
