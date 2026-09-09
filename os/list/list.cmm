@@ -1,7 +1,7 @@
 #include <kernel.hmm>
 #include <util.hmm>
 #include "list.hmm"
-#include "lcd.hmm"
+#include "lcd.h"
 
 #define SW1 0x20
 #define SW2 0x10
@@ -9,7 +9,9 @@
 #define SW4 0x04
 #define SW5 0x02
 #define SW6 0x01
-#define SWS 0x3f 
+#define SWS 0x3f
+#define fileCount 6
+#define TITLE_LENGTH 13
 
 int sw0 = 0x00;
 int sw1 = 0x00;    
@@ -24,35 +26,49 @@ int readSw() {
 }
 
 int swToNum(int sw) {
-  int num = -1;
-  if ((sw & SW6)!=0) {                              // 6 番のスイッチが押された
-    num = 6;
-  } else if ((sw & SW5)!=0) {                       // 5 番のスイッチが押された
-    num = 5;
-  } else if ((sw & SW4)!=0) {                       // 4 番のスイッチが押された
-    num = 4;
-  } else if ((sw & SW3)!=0) {                       // 3 番のスイッチが押された
-    num = 3;
-  } else if ((sw & SW2)!=0) {                       // 2 番のスイッチが押された
-    num = 2;
-  } else if ((sw & SW1)!=0) {                       // 1 番のスイッチが押された
-    num = 1;
-  }
-  return num;
+    int num = -1;
+    if ((sw & SW6)!=0) {                              // 6 番のスイッチが押された
+        num = 6;
+    } else if ((sw & SW5)!=0) {                       // 5 番のスイッチが押された
+        num = 5;
+    } else if ((sw & SW4)!=0) {                       // 4 番のスイッチが押された
+        num = 4;
+    } else if ((sw & SW3)!=0) {                       // 3 番のスイッチが押された
+        num = 3;
+    } else if ((sw & SW2)!=0) {                       // 2 番のスイッチが押された
+        num = 2;
+    } else if ((sw & SW1)!=0) {                       // 1 番のスイッチが押された
+        num = 1;
+    }
+    return num;
 }
 
 public int select(char[] title, char[][] fnames, int size) {
+    int len = strLen(title);
 
-    int fileCount = 6;  //ファイルを表示できる数6個
-    lcd_draw_string(0,0,title);  //1行目にタイトル
-    lcd_draw_string(0,1,"");     //2行目に空白
+    if (len > TITLE_LENGTH)
+    {
+        title[TITLE_LENGTH] = '\0';
+    }
+    else
+    {
+        while (len < TITLE_LENGTH)
+        {
+            title[len] = ' ';
+            len = len + 1;
+        }
+        title[len] = '\0';
+    }
+
+    lcd_draw_string(0, 0, title);
+    
 
     int loop = fileCount;
     if(size < fileCount){
         loop = size;
     }
     for (int i = 0; i < loop; i=i+1) {
-      lcd_draw_string(0, i+2, fname[i]);
+      lcd_draw_string(0, i+2, fnames[i]);
     }
 
 

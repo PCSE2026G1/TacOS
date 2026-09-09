@@ -15,13 +15,16 @@ int count_file(char[] dir_name)
     int count = 0;
 
     int rslt;
-    rslt = file_read_dir(fd, name);
-
-    while (rslt != -1)
+    do
     {
-        count = count + 1;
         rslt = file_read_dir(fd, name);
+        //エラー(-1)じゃないかつ終点(2)じゃなかったらカウント
+        if (rslt != -1 && rslt != 2)
+        {
+            count = count + 1;
+        }
     }
+    while (rslt != -1 && rslt != 2);
 
     close(fd);
 

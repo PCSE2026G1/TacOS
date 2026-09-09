@@ -16,7 +16,7 @@ public int file_read_dir(int fd, char[] name) {
 
         // ディレクトリ終端
         if (flag == '\x00')
-            return -1;
+            return 2;
 
         // 有効なエントリだけ
         if (flag != '\xe5' && (attr & 0x0a) == 0) {
