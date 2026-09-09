@@ -1,54 +1,57 @@
+#include <kernel.hmm>
+#include <util.hmm>
 #include "file_chooser.hmm"
+#include "fs.hmm"
+#include "file_manager.hmm"
+#include "mm.hmm"
+#include "list.hmm"
 
 
-int count_file(char *dir_name)
+char[] name = array(13);
+
+int count_file(char[] dir_name)
 {
-    int fd = open(dir_name); // 調べて <3
-    unsigned int count = 0;
+    int fd = open(dir_name, READ_MODE);
+    int count = 0;
 
     int rslt;
-    while ((rslt = file_read_dir(fd, name)) != -1)
+    rslt = file_read_dir(fd, name);
+
+    while (rslt != -1)
     {
-        count++;
+        count = count + 1;
+        rslt = file_read_dir(fd, name);
     }
 
-    close(fd); // 自分で調べて :)
+    close(fd);
 
     return count;
 }
 
-public void chooser(char *filename)
+public void chooser(char[] filename)
 {
-    int fd = open("/");
-    //freeを忘れずに
-    int size = count_file();
+    int fd = open("/", READ_MODE);
 
-    char[][] arr = malloc(size*2)
+    int size = count_file("/");
 
-    for(int i = 0;i < size; i++){
-        char[] name = malloc(13)
+    char[][] arr = malloc(size * 2);
+
+    for (int i = 0; i < size; i=i+1) {
+        char[] name = malloc(13);
         file_read_dir(fd, name);
 
-        // if (type == -1) {
-        //     break;
-        // }
-        arr[i] = name
-
-        
+        arr[i] = name;
     }
 
     close(fd);
-    
-    int i = select("FILE", arr, size);  //配列一覧とサイズを渡すと、selectがカーソル位置を返してくれる
-    char[] selected_name = arr[i]
-    
-    //arrのfree
-    for(int i = 0;i<size; i++){
+
+    int index = select("FILE", arr, size);
+    char[] selected_name = arr[index];
+
+    for (int i = 0; i < size; i=i+1) {
         free(arr[i]);
     }
     free(arr);
-    
 
-
-    strcpy(filename, selected_name);
+    strCpy(filename, selected_name);
 }

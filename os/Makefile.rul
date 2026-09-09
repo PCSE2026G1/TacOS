@@ -39,7 +39,7 @@ endif
 
 CMFLAGS+=-I/usr/local/cmmInclude
 CMFLAGS+=-I/usr/cmmInclude
-CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../tty -I../sio
+CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../tty -I../sio -I../list
 
 ifndef EMBEDDED
 CMFLAGS+=-I../pm                # 汎用版にだけpmがある

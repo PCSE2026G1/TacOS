@@ -1,6 +1,6 @@
 #ifndef LIST_HMM
 #define LIST_HMM
 
-public int select(char[] title, char[][] array, int size);
+public int select(char[] title, char[][] fnames, int size);
 
 #endif

@@ -1,13 +1,14 @@
 #include "file_manager.hmm"
+#include "fs.hmm"
 
 char[] buf = array(32);
 
-public int file_getDiskCapasity(){
+// public int file_getDiskCapasity(){
 
-}
-public int file_getDiskUsage(){
+// }
+// public int file_getDiskUsage(){
 
-}
+// }
 public int file_read_dir(int fd, char[] name) {
     if (read(fd, buf, 32) == 32) {
         char flag = buf[0];
@@ -39,7 +40,7 @@ public int file_read_dir(int fd, char[] name) {
 
             name[j] = '\0';
 
-            if(attr & 0x10){//ディレクトリなら
+            if((attr & 0x10) == 0x10){//ディレクトリなら
                 return 1;
             }
             else{           //それ以外(ファイル)

@@ -1,6 +1,6 @@
 #ifndef FILE_CHOOSER_HMM
 #define FILE_CHOOSER_HMM
 
-public void chooser(int fd, char[] name);
+public void chooser(char[] name);
 
 #endif
