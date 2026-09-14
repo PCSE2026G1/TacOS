@@ -13,6 +13,7 @@ int sec0;
 int sem;
 
 char[] alarmFile = null;
+boolean alarmSet = false;
 
 void copyTime(Time dst, Time src) {
     if (dst==null || src==null) return;
@@ -87,81 +88,128 @@ public void setTime(Time time) {
 }
 
 public void getAlarm(Time time) {
+    semP(sem);
     copyTime(time, alarmTime);
+    semV(sem);
 }
 
 public void setAlarm(Time time) {
     if (!isValidTime(time)) return;
 
+    semP(sem);
     copyTime(alarmTime, time);
+    alarmSet = true;
+    semV(sem);
 }
 
 public char[] getFile() {
-    return alarmFile;
+    semP(sem);
+    char[] file = alarmFile;
+    semV(sem);
+    return file;
 }
 
 public void setFile(char[] file) {
-    if(alarmFile != null){
-        free(alarmFile);
-        alarmFile = null;
-    }
+    char[] newFile = null;
     if(file != null){
         int length = strLen(file);
-        alarmFile = malloc(length+1);
-        strCpy(alarmFile, file);
+        newFile = malloc(length+1);
+        if (newFile==null) return;
+        strCpy(newFile, file);
     }
+
+    semP(sem);
+    char[] oldFile = alarmFile;
+    alarmFile = newFile;
+    semV(sem);
+
+    if (oldFile!=null) free(oldFile);
 }
 
 public void setTimer(Time time) {
     if (!isValidTime(time)) return;
 
+    semP(sem);
     copyTime(timerTime, time);
+    semV(sem);
 }
 
 public void clockMain(){
     for(;;){
         sleep(1000);
+        semP(sem);
         sec = sec + 1;
-        // increaseSecond();
+        if (sec<0) sec = 0;
+        semV(sem);
     }
 }
 
-void addSec(int n, Time time){
-    time.sec = time.sec + n;
-    time.min = time.min + time.sec / 60;
-    time.sec = time.sec % 60;
-    time.hour = time.hour + time.min / 60;
-    time.min = time.min % 60;
-    time.day = time.day + time.hour / 24;
-    time.hour = time.hour % 24;
+void increaseSecond(Time time){
+    time.sec = time.sec+1;
+    if (time.sec<60) return;
+    time.sec = 0;
 
-    if (currentTime.day
-        > daysInMonth(currentTime.year, currentTime.mon)) {
-        currentTime.day = 1;
-        currentTime.mon = currentTime.mon + 1;
+    time.min = time.min+1;
+    if (time.min<60) return;
+    time.min = 0;
+
+    time.hour = time.hour+1;
+    if (time.hour<24) return;
+    time.hour = 0;
+
+    time.day = time.day+1;
+    if (time.day>daysInMonth(time.year, time.mon)) {
+        time.day = 1;
+        time.mon = time.mon+1;
     }
 
-    if (currentTime.mon>12) {
-        currentTime.mon = 1;
-        currentTime.year = currentTime.year + 1;
+    if (time.mon>12) {
+        time.mon = 1;
+        time.year = time.year+1;
     }
 }
 
 public void clockSub(){
+    semP(sem);
     sec0 = sec;
+    semV(sem);
+
     for(;;){
+        boolean playAlarm = false;
+        char[] file = null;
+
         semP(sem);
         int sec2 = sec;
-        addSec(sec2-sec0, currentTime);
-        sec0 = sec2;
-        semV(sem);
-        sleep(1000);
-        if (CompTime(currentTime, alarmTime) == true){
-            MP3playfile(alarmFile, false);
+
+        while (sec0!=sec2) {
+            increaseSecond(currentTime);
+            sec0 = sec0+1;
+            if (sec0<0) sec0 = 0;
+
+            if (alarmSet && alarmFile!=null &&
+                CompTime(currentTime, alarmTime)) {
+                int length = strLen(alarmFile);
+                file = malloc(length+1);
+                if (file!=null) {
+                    strCpy(file, alarmFile);
+                    playAlarm = true;
+                    alarmSet = false;
+                }
+            }
         }
+        semV(sem);
+
+        if (playAlarm) {
+            MP3playfile(file, false);
+            free(file);
+        }
+
+        sleep(10);
     }
 }
 
 public void ClockInit(){
     sem = newSem(1);
+    sec = 0;
+    sec0 = 0;
 }

@@ -30,12 +30,12 @@
 #include <mm.hmm>
 #include <fs.hmm>
 #include "kernel.hmm"
-#include "Clock.hmm"
 
 #ifndef EMBEDDED
 #include <pm.hmm>
 #include <init.hmm>
 #else
+#include <Clock.hmm>
 #include <shellProc.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>

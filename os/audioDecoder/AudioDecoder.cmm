@@ -1,5 +1,7 @@
+#include <fs.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>
+#include <util.hmm>
 
 #include "AudioDecoder.hmm"
 
@@ -7,6 +9,10 @@
 #define SCI_DECODE_TIME 0x04
 #define SCI_AUDATA      0x05
 #define SCI_VOL         0x0b
+
+#define MIN_SAMPLE_RATE_HALF  4000
+#define MAX_SAMPLE_RATE_HALF 24000
+#define PLAY_HISTORY_FILE "/playHistory.txt"
 
 // SCI_AUDATA holds the sample rate in bits 15:1 and the channel flag in bit 0.
 int baseAudioData = 0;
@@ -16,6 +22,24 @@ boolean captureBaseAudioData() {
   int audioData = spiReadMp3Reg(SCI_AUDATA);
   if ((audioData & 0xfffe)==0) return false;
   baseAudioData = audioData;
+  return true;
+}
+
+boolean addPlayHistory(char[] file) {
+  int fd = open(PLAY_HISTORY_FILE, APPEND_MODE);
+  if (fd<0) {
+    if (creat(PLAY_HISTORY_FILE)<0) return false;
+    fd = open(PLAY_HISTORY_FILE, APPEND_MODE);
+    if (fd<0) return false;
+  }
+
+  int length = strLen(file);
+  if (write(fd, file, length)!=length || write(fd, "\n", 1)!=1) {
+    close(fd);
+    return false;
+  }
+
+  close(fd);
   return true;
 }
 
@@ -30,27 +54,32 @@ public int getVolume() {
   return spiReadMp3Reg(SCI_VOL)&0x00ff;
 }
 
-// Supported playback speeds are 25, 50, 75 and 100 percent.
 public void setSpeed(int speed) {
-  if (speed!=25 && speed!=50 && speed!=75 && speed!=100) return;
+  if (speed<=0 || speed>200) return;
 
   if (baseAudioData==0 && !captureBaseAudioData()) return;
 
   int channel = baseAudioData&0x0001;
-  int baseRate = baseAudioData&0xfffe;
-  int newRate;
+  int baseRateHalf = (baseAudioData>>1)&0x7fff;
+  int quotient = baseRateHalf/100;
+  int fraction = baseRateHalf%100;
+  int newRateHalf = 0;
+  int remainder = 0;
 
-  if (speed==25) {
-    newRate = baseRate>>2;
-  } else if (speed==50) {
-    newRate = baseRate>>1;
-  } else if (speed==75) {
-    newRate = (baseRate>>1)+(baseRate>>2);
-  } else {
-    newRate = baseRate;
+  // Calculate baseRateHalf*speed/100 without overflowing a 16-bit int.
+  for (int i=0; i<speed; i=i+1) {
+    newRateHalf = newRateHalf+quotient;
+    remainder = remainder+fraction;
+    if (remainder>=100) {
+      newRateHalf = newRateHalf+1;
+      remainder = remainder-100;
+    }
   }
 
-  spiWriteMp3Reg(SCI_AUDATA, (newRate&0xfffe)|channel);
+  if (newRateHalf<MIN_SAMPLE_RATE_HALF ||
+      newRateHalf>MAX_SAMPLE_RATE_HALF) return;
+
+  spiWriteMp3Reg(SCI_AUDATA, (newRateHalf<<1)|channel);
   speedValue = speed;
 }
 
@@ -63,30 +92,20 @@ public int getPosition() {
 }
 
 public void MP3playfile(char[] file, boolean save) {
+  if (file==null) return;
+
   baseAudioData = 0;
   speedValue = 100;
   spiResetMp3();
-  play(file);
-
-  // save is reserved for the play-history component. That component has not
-  // been provided yet, so AudioDecoder must not call an undefined function.
+  if (play(file) && save) addPlayHistory(file);
 }
 
 public void MP3stop() {
   stop();
 }
 
-public void decoder(char[] buf, int size) {
-  if (buf==null || size<=0) return;
-  spiWriteMp3Dat(buf, size);
-}
-
 // VS1011E exposes elapsed decode time, but not the total duration of an MP3.
 // Determining total duration requires parsing CBR/VBR MP3 metadata.
 public int getTotalTime() {
   return -1;
-}
-
-public int getCurrentTime() {
-  return getPosition();
 }
