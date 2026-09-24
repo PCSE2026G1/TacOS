@@ -19,13 +19,14 @@ int count_file(char[] dir_name)
     do
     {
         rslt = file_read_dir(fd, name);
-        //エラー(-1)じゃないかつ終点(2)じゃなかったらカウント
-        if (rslt != -1 && rslt != 2)
+
+        // ファイルまたはディレクトリならカウント
+        if (rslt == 0 || rslt == 1)
         {
             count = count + 1;
         }
-    }
-    while (rslt != -1 && rslt != 2);
+
+    } while (rslt != 2);
 
     close(fd);
 
@@ -45,13 +46,25 @@ public void chooser(char[] filename)
         char[][] arr = malloc(size * 2);
         int[] types = malloc(size * 2);
 
-        for (int i = 0; i < size; i = i + 1) {
+        int i = 0;
+
+        while (i < size) {
             char[] name = malloc(16);
 
             int type = file_read_dir(fd, name);
 
-            arr[i] = name;
-            types[i] = type;
+            if (type == 0 || type == 1) {
+                arr[i] = name;
+                types[i] = type;
+                i = i + 1;
+            }
+            else if (type == 2) {
+                free(name);
+                break;
+            }
+            else {
+                free(name);
+            }
         }
 
         close(fd);
@@ -70,8 +83,8 @@ public void chooser(char[] filename)
 
             strCat(filename, selected_name);
 
-            for (int i = 0; i < size; i = i + 1) {
-                free(arr[i]);
+            for (int j = 0; j < size; j = j + 1) {
+                free(arr[j]);
             }
 
             free(arr);
@@ -97,8 +110,8 @@ public void chooser(char[] filename)
             current_path = new_path;
         }
 
-        for (int i = 0; i < size; i = i + 1) {
-            free(arr[i]);
+        for (int k = 0; k < size; k = k + 1) {
+            free(arr[k]);
         }
 
         free(arr);
