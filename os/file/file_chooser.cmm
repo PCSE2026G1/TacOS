@@ -1,5 +1,6 @@
 #include <kernel.hmm>
 #include <util.hmm>
+#include <string.hmm> 
 #include "file_chooser.hmm"
 #include "fs.hmm"
 #include "file_manager.hmm"
@@ -7,7 +8,7 @@
 #include "list.hmm"
 
 
-char[] name = array(13);
+char[] name = array(16);
 
 int count_file(char[] dir_name)
 {
@@ -33,28 +34,74 @@ int count_file(char[] dir_name)
 
 public void chooser(char[] filename)
 {
-    int fd = open("/", READ_MODE);
+    char[] current_path = malloc(16);
+    strCpy(current_path, "/");
 
-    int size = count_file("/");
+    while (true) {
+        int fd = open(current_path, READ_MODE);
 
-    char[][] arr = malloc(size * 2);
+        int size = count_file(current_path);
 
-    for (int i = 0; i < size; i=i+1) {
-        char[] name = malloc(13);
-        file_read_dir(fd, name);
+        char[][] arr = malloc(size * 2);
+        int[] types = malloc(size * 2);
 
-        arr[i] = name;
+        for (int i = 0; i < size; i = i + 1) {
+            char[] name = malloc(16);
+
+            int type = file_read_dir(fd, name);
+
+            arr[i] = name;
+            types[i] = type;
+        }
+
+        close(fd);
+
+        int index = select(current_path, arr, size);
+
+        char[] selected_name = arr[index];
+
+        // ファイルだった場合
+        if (types[index] == 0) {
+            strCpy(filename, current_path);
+
+            if (strCmp(current_path, "/") != 0) {
+                strCat(filename, "/");
+            }
+
+            strCat(filename, selected_name);
+
+            for (int i = 0; i < size; i = i + 1) {
+                free(arr[i]);
+            }
+
+            free(arr);
+            free(types);
+            free(current_path);
+
+            return;
+        }
+
+        // ディレクトリだった場合
+        else {
+            char[] new_path = malloc(16);
+
+            strCpy(new_path, current_path);
+
+            if (strCmp(current_path, "/") != 0) {
+                strCat(new_path, "/");
+            }
+
+            strCat(new_path, selected_name);
+
+            free(current_path);
+            current_path = new_path;
+        }
+
+        for (int i = 0; i < size; i = i + 1) {
+            free(arr[i]);
+        }
+
+        free(arr);
+        free(types);
     }
-
-    close(fd);
-
-    int index = select("FILE", arr, size);
-    char[] selected_name = arr[index];
-
-    for (int i = 0; i < size; i=i+1) {
-        free(arr[i]);
-    }
-    free(arr);
-
-    strCpy(filename, selected_name);
 }

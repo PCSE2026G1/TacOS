@@ -11,7 +11,7 @@
 #define SW6 0x01
 #define SWS 0x3f
 #define fileCount 6
-#define TITLE_LENGTH 13
+#define TITLE_LENGTH 16
 
 int sw0 = 0x00;
 int sw1 = 0x00;    
