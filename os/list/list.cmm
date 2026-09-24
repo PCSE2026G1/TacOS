@@ -73,10 +73,11 @@ public int select(char[] title, char[][] fnames, int size) {
 
 
     int cursor = 0;
+    int start = 0; //描画開始位置
+
     for (;;) {
         int sw = readSw();
         int num = swToNum(sw);
-        int start = 0; //描画開始位置
 
         if (num == 5) { // 下
             if (cursor < size - 1) {
@@ -98,12 +99,17 @@ public int select(char[] title, char[][] fnames, int size) {
                 }
             }
         }
-
-        //もし画面サイズstartから6個が、サイズより大きくなったら
-        if (start + fileCount > size) {
-            start = size - fileCount;
+        else if (num == 6) {
+            break;
         }
 
+        if (size <= fileCount) {
+            start = 0;
+        }
+        else if (start + fileCount > size) {
+            start = size - fileCount;
+        }
+        
         for (int i = 0; i < loop; i=i+1) {
             int index = start + i;
 
