@@ -4,18 +4,19 @@
 #include "Time.hmm"
 
 public void getTime(Time time);
-public void setTime(Time time);
+public boolean setTime(Time time);
 
 public void getAlarm(Time time);
-public void setAlarm(Time time);
+public boolean setAlarm(Time time);
+public boolean isAlarmSet();
+public void clearAlarm();
 
 public char[] getFile();
-public void setFile(char[] file);
+public boolean setFile(char[] file);
 
-public void setTimer(Time time);
+public boolean setTimer(Time time);
 
 public void clockMain();
-public void clockSub();
 public void ClockInit();
 
 #endif

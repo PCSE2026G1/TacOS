@@ -57,10 +57,9 @@ MakePCB(pmMem);                                     // PM のPCBとスタック�
 int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザだけ）
 #else
 // 組み込みカーネルの場合
-MakePCB(shellMem);                                  // APPのPCBとスタック領域
-MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
-MakePCB(ClockMem);
-MakePCB(ClockSubMem);
+  MakePCB(shellMem);                                  // APPのPCBとスタック領域
+  MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
+  MakePCB(ClockMem);
 int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
 int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
 #endif
@@ -104,8 +103,6 @@ public void regProc()  {
   ClockInit();
   newProc(addrof(clockMain),0,0,EI|KERN, _AtoA(ClockMem), null);
   schProc(_AtoA(ClockMem));
-  newProc(addrof(clockSub),1,0,EI|KERN, _AtoA(ClockSubMem), null);
-  schProc(_AtoA(ClockSubMem));
 
 
 #endif

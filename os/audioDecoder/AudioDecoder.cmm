@@ -44,20 +44,20 @@ boolean addPlayHistory(char[] file) {
 }
 
 // volume is the VS1011E attenuation value (0: maximum, 254: silence).
-public void setVolume(int volume) {
-  if (volume<0) volume = 0;
-  if (volume>0xfe) volume = 0xfe;
+public boolean setVolume(int volume) {
+  if (volume<0 || volume>0xfe) return false;
   spiWriteMp3Reg(SCI_VOL, (volume<<8)|volume);
+  return true;
 }
 
 public int getVolume() {
   return spiReadMp3Reg(SCI_VOL)&0x00ff;
 }
 
-public void setSpeed(int speed) {
-  if (speed<=0 || speed>200) return;
+public boolean setSpeed(int speed) {
+  if (speed<=0) return false;
 
-  if (baseAudioData==0 && !captureBaseAudioData()) return;
+  if (baseAudioData==0 && !captureBaseAudioData()) return false;
 
   int channel = baseAudioData&0x0001;
   int baseRateHalf = (baseAudioData>>1)&0x7fff;
@@ -74,13 +74,15 @@ public void setSpeed(int speed) {
       newRateHalf = newRateHalf+1;
       remainder = remainder-100;
     }
+    if (newRateHalf>MAX_SAMPLE_RATE_HALF) return false;
   }
 
   if (newRateHalf<MIN_SAMPLE_RATE_HALF ||
-      newRateHalf>MAX_SAMPLE_RATE_HALF) return;
+      newRateHalf>MAX_SAMPLE_RATE_HALF) return false;
 
   spiWriteMp3Reg(SCI_AUDATA, (newRateHalf<<1)|channel);
   speedValue = speed;
+  return true;
 }
 
 public int getSpeed() {
@@ -91,13 +93,15 @@ public int getPosition() {
   return spiReadMp3Reg(SCI_DECODE_TIME);
 }
 
-public void MP3playfile(char[] file, boolean save) {
-  if (file==null) return;
+public boolean MP3playfile(char[] file, boolean save) {
+  if (file==null) return false;
 
   baseAudioData = 0;
   speedValue = 100;
   spiResetMp3();
-  if (play(file) && save) addPlayHistory(file);
+  if (!play(file)) return false;
+  if (save && !addPlayHistory(file)) return false;
+  return true;
 }
 
 public void MP3stop() {
