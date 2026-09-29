@@ -13,6 +13,8 @@ extern void PTR(malloc(unsigned int size));
 extern void free(void PTR(ptr));
 extern int sleep(unsigned int ms);
 
+extern unsigned int strLen(const char PTR(str));
+
 extern void locateXY(unsigned int x, unsigned int y);
 extern void putStr(const char PTR(str));
 
