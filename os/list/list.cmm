@@ -10,16 +10,16 @@
 #define SW5 0x02
 #define SW6 0x01
 #define SWS 0x3f
-#define fileCount 6
+#define fileCount 7
 #define TITLE_LENGTH 16
 
 int sw0 = 0x00;
 int sw1 = 0x00;    
 
 int readSw() {
-  int sw = ~in(0x18) & SWS;                         // スイッチを読み正論理に変換
-  int swd = sw & sw0;                               // デバウンス
-  int sw2 = (sw1 ^ swd) & swd;                      // 今回，新たに押されたSW
+  int sw = ~in(0x18) & SWS;
+  int swd = sw & sw0;
+  int sw2 = (sw1 ^ swd) & swd;
   sw0 = sw;
   sw1 = swd;
   return sw2;
@@ -43,37 +43,18 @@ int swToNum(int sw) {
     return num;
 }
 
-public int select(char[] title, char[][] fnames, int size) {
-    int len = strLen(title);
 
-    if (len > TITLE_LENGTH)
-    {
-        title[TITLE_LENGTH] = '\0';
-    }
-    else
-    {
-        while (len < TITLE_LENGTH)
-        {
-            title[len] = ' ';
-            len = len + 1;
-        }
-        title[len] = '\0';
-    }
+public int select(char[] title, char[][] fnames, int size) {
 
     lcd_draw_string(0, 0, title);
-    
 
     int loop = fileCount;
     if(size < fileCount){
         loop = size;
     }
-    for (int i = 0; i < loop; i=i+1) {
-      lcd_draw_string(0, i+2, fnames[i]);
-    }
-
 
     int cursor = 0;
-    int start = 0; //描画開始位置
+    int start = 0;
 
     for (;;) {
         int sw = readSw();
@@ -83,7 +64,6 @@ public int select(char[] title, char[][] fnames, int size) {
             if (cursor < size - 1) {
                 cursor = cursor + 1;
 
-                //cursorが、描画開始位置から6個を越えたらカーソルが画面外なので描画位置(start)を++
                 if (cursor >= start + fileCount) {
                     start = start + 1;
                 }
@@ -93,13 +73,12 @@ public int select(char[] title, char[][] fnames, int size) {
             if (cursor > 0) {
                 cursor = cursor - 1;
 
-                //cursorが、描画開始位置の前に来たら描画開始位置(start)を--
                 if (cursor < start) {
                     start = start - 1;
                 }
             }
         }
-        else if (num == 6) {
+        else if (num == 6) { // 決定
             break;
         }
 
@@ -111,10 +90,18 @@ public int select(char[] title, char[][] fnames, int size) {
         }
         
         for (int i = 0; i < loop; i=i+1) {
+            lcd_draw_string(0,i+1,"                ");
             int index = start + i;
-
-            lcd_draw_string(0, i+2, fnames[index]);
+            if (index == cursor) {
+                lcd_draw_string(0, i+1, "*");
+            }
+            else {
+                lcd_draw_string(0, i+1, " ");
+            }
+            lcd_draw_string(2, i+1, fnames[index]);
         }
+        
+        sleep(10); 
     }
     return cursor;
 }
