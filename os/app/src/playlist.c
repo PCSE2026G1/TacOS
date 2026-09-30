@@ -1,7 +1,12 @@
 #include "playlist.h"
 #include "cmmdef.h"
 #include "cmm.h"
+#include "tac_assert.h"
 #include "tac_string.h"
+
+#ifndef PL_BUFFER_SIZE
+#define PL_BUFFER_SIZE 128
+#endif
 
 extern SPTR(playlist_t, pl_alloc(VOID))
 {
@@ -71,5 +76,46 @@ extern unsigned int pl_remove(SPTR(playlist_t, playlist), SPTR(playlist_item_t, 
     }
     free(item);
     DEC(MEMBER(playlist, count));
+    return 0;
+}
+
+extern int pl_read(SPTR(playlist_t, playlist), const char PTR(name))
+{
+    char PTR(buf) = malloc(PL_BUFFER_SIZE);
+    if (buf == NULL)
+        return -1;
+    int fd = open(name, 0);
+    if (fd < 0)
+    {
+        free(buf);
+        return -1;
+    }
+    void *p = buf;
+    int len;
+    while ((len = read(fd, p, PL_BUFFER_SIZE - subpp(p, buf))) >= 0)
+    {
+        p = addp(p, len);
+        len = subpp(p, buf);
+        if (len == 0)
+            break;
+        if (buf[0] == '\n')
+        {
+            memmove(buf, addp(buf, 1), len - 1);
+            p = subp(p, 1);
+            continue;
+        }
+        int i = 0;
+        for (; i < len && buf[i] != '\n'; INC(i));
+        assert(i < PL_BUFFER_SIZE);
+        buf[i] = '\0';
+        pl_add(playlist, buf);
+        memmove(buf, addp(buf, i + 1), len - i - 1);
+        p = subp(p, i + 1);
+    }
+    if (close(fd) == -1)
+        len = -1;
+    free(buf);
+    if (len == -1)
+        return -1;
     return 0;
 }
