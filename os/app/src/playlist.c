@@ -135,3 +135,16 @@ extern int pl_write(SPTR(const playlist_t, playlist), const char PTR(name))
         ret = -1;
     return ret;
 }
+
+extern int pl_append(const char PTR(playlist), const char PTR(name))
+{
+    int fd = open(playlist, 2);
+    if (fd < -1)
+        return -1;
+    int ret = 0;
+    if (write(fd, name, strLen(name)) < 0 || write(fd, "\n", 1) < 0)
+        ret = -1;
+    if (close(fd) < 0)
+        ret = -1;
+    return ret;
+}

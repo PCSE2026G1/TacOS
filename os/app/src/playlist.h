@@ -30,5 +30,6 @@ extern unsigned int pl_remove(SPTR(playlist_t, playlist), SPTR(playlist_item_t, 
 
 extern int pl_read(SPTR(playlist_t, playlist), const char PTR(name));
 extern int pl_write(SPTR(const playlist_t, playlist), const char PTR(name));
+extern int pl_append(const char PTR(playlist), const char PTR(name));
 
 #endif
