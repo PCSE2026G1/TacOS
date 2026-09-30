@@ -12,13 +12,17 @@
 
 char[] name = array(16);
 
+void reset_screen(){
+    for (int y = 0; y < 8; y = y + 1) {
+        lcd_draw_string(0, y, "                ");
+    }
+}
+
 public void file_test()
 {
     spiResetLcd();                                    //   sleepを使用するので
     spiResetMp3();                                    //   プロセスが実行する
-    for (int y = 0; y < 8; y = y + 1) {
-        lcd_draw_string(0, y, "                ");
-    }
+    reset_screen();
     char[] filename = malloc(256);
     chooser(filename);
     free(filename);
@@ -127,6 +131,7 @@ public void chooser(char[] filename)
         }
         // ディレクトリだった場合
         else {
+            reset_screen();
             char[] new_path = malloc(256);
             strCpy(new_path, current_path);
             if (strCmp(current_path, "/") != 0) {
