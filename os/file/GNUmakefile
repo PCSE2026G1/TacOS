@@ -25,4 +25,6 @@
 #
 OBJS=file_chooser.o file_manager.o
 
+CMFLAGS += -DCMMDEF
+
 include ../Makefile.rul

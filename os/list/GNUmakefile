@@ -25,4 +25,6 @@
 #
 OBJS=list.o
 
+CMFLAGS += -DCMMDEF
+
 include ../Makefile.rul
