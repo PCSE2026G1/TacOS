@@ -2,5 +2,5 @@
 #define FILE_CHOOSER_HMM
 
 public void chooser(char[] name);
-
+public void file_test();
 #endif
