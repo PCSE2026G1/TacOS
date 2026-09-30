@@ -90,7 +90,7 @@ extern int pl_read(SPTR(playlist_t, playlist), const char PTR(name))
         free(buf);
         return -1;
     }
-    void *p = buf;
+    void PTR(p) = buf;
     int len;
     while ((len = read(fd, p, PL_BUFFER_SIZE - subpp(p, buf))) >= 0)
     {
@@ -118,4 +118,20 @@ extern int pl_read(SPTR(playlist_t, playlist), const char PTR(name))
     if (len == -1)
         return -1;
     return 0;
+}
+
+extern int pl_write(SPTR(const playlist_t, playlist), const char PTR(name))
+{
+    int fd = open(name, 1);
+    if (fd < 0)
+        return -1;
+    int ret = 0;
+    for (SPTR(const playlist_item_t, item) = MEMBER(playlist, front); item != NULL; item = MEMBER(item, next))
+    {
+        if (write(fd, MEMBER(item, name), strLen(MEMBER(item, name))) < 0 || write(fd, "\n", 1) < 0)
+            ret = -1;
+    }
+    if (close(fd) < 0)
+        ret = -1;
+    return ret;
 }
