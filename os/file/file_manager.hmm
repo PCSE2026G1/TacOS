@@ -1,0 +1,6 @@
+#ifndef FILE_MANAGER_HMM
+#define FILE_MANAGER_HMM
+
+public int file_read_dir(int fd, char[] name);
+
+#endif

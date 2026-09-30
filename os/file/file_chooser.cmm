@@ -1,0 +1,147 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <string.hmm> 
+#include "file_chooser.hmm"
+#include "fs.hmm"
+#include "file_manager.hmm"
+#include "mm.hmm"
+#include "list.hmm"
+#include "spi.hmm"
+#include "lcd.h"
+#include "mp3Files.hmm"
+
+char[] name = array(16);
+
+public void file_test()
+{
+    spiResetLcd();                                    //   sleepを使用するので
+    spiResetMp3();                                    //   プロセスが実行する
+    for (int y = 0; y < 8; y = y + 1) {
+        lcd_draw_string(0, y, "                ");
+    }
+    char[] filename = malloc(256);
+    chooser(filename);
+    free(filename);
+}
+
+int count_file(char[] dir_name)
+{
+    int fd = open(dir_name, READ_MODE);
+    if (fd < 0) {
+        return 0;
+    }
+
+    int count = 0;
+    int rslt;
+
+    do
+    {
+        rslt = file_read_dir(fd, name);
+
+        if (rslt == 0) {
+            count = count + 1;
+        }
+        else if (rslt == 1) {
+            count = count + 1;
+        }
+        else if (rslt == 2) {
+        }
+
+    } while (rslt != 2);
+
+    close(fd);
+
+    return count;
+}
+
+
+public void chooser(char[] filename)
+{
+    char[] current_path = malloc(256);
+    strCpy(current_path, "/");
+
+    while (true) {
+        int size = count_file(current_path);
+        if (size == 0) {
+            free(current_path);
+            return;
+        }
+
+
+        int fd = open(current_path, READ_MODE);
+        if (fd < 0) {
+            free(current_path);
+            return;
+        }
+
+
+        char[][] arr = malloc(size * 2);
+        int[] types = malloc(size * 2);
+        int i = 0;
+        while (i < size) {
+            char[] name = malloc(16);
+            int type = file_read_dir(fd, name);
+            if (type == 0 || type == 1) {
+
+                arr[i] = name;
+                types[i] = type;
+
+                i = i + 1;
+            }
+            else if (type == 2) {
+
+                free(name);
+                break;
+            }
+            else {
+
+                free(name);
+            }
+        }
+        close(fd);
+
+
+        int index = select(current_path, arr, size);
+
+
+        char[] selected_name = arr[index];
+        // ファイルだった場合
+        if (types[index] == 0) {
+            lcd_draw_string(0, 7, "                ");
+            lcd_draw_string(0, 7, selected_name);
+            strCpy(filename, current_path);
+            if (strCmp(current_path, "/") != 0) {
+                strCat(filename, "/");
+            }
+            strCat(filename, selected_name);
+
+
+            for (int j = 0; j < size; j = j + 1) {
+                free(arr[j]);
+            }
+            free(arr);
+            free(types);
+            free(current_path);
+
+            return;
+        }
+        // ディレクトリだった場合
+        else {
+            char[] new_path = malloc(256);
+            strCpy(new_path, current_path);
+            if (strCmp(current_path, "/") != 0) {
+                strCat(new_path, "/");
+            }
+            strCat(new_path, selected_name);
+            free(current_path);
+            current_path = new_path;
+        }
+
+
+        for (int k = 0; k < size; k = k + 1) {
+            free(arr[k]);
+        }
+        free(arr);
+        free(types);
+    }
+}

@@ -108,7 +108,7 @@ list(APPEND CMCPPFLAGS ${CMDIRS})
 list(APPEND CMFLAGS ${CMCPPFLAGS})
 
 set(APP_PROCESSES
-    2ms_play
+    f0file_test
 )
 add_executable(generate_process_s)
 target_sources(generate_process_s
