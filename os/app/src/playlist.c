@@ -148,3 +148,29 @@ extern int pl_append(const char PTR(playlist), const char PTR(name))
         ret = -1;
     return ret;
 }
+
+extern unsigned int pl_to_array(SPTR(const playlist_t, playlist), const char PTR(PTR(dest)))
+{
+    unsigned int count = 0;
+    for (SPTR(const playlist_item_t, item) = MEMBER(playlist, front); item != NULL; item = MEMBER(item, next))
+    {
+        dest[count] = MEMBER(item, name);
+        INC(count);
+    }
+    assert(count == MEMBER(playlist, count));
+    return count;
+}
+
+extern unsigned int pl_to_names(SPTR(const playlist_t, playlist), const char PTR(PTR(dest)))
+{
+    unsigned int count = pl_to_array(playlist, dest);
+    for (unsigned int i = 0; i < count; INC(i))
+    {
+        unsigned int j = 0;
+        for (unsigned int k = 0; dest[i][k] != '\0'; INC(k))
+            if (dest[i][k] == '/')
+                j = k + 1;
+        dest[i] = addp(dest[i], j);
+    }
+    return count;
+}

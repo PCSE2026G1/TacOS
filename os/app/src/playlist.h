@@ -32,4 +32,7 @@ extern int pl_read(SPTR(playlist_t, playlist), const char PTR(name));
 extern int pl_write(SPTR(const playlist_t, playlist), const char PTR(name));
 extern int pl_append(const char PTR(playlist), const char PTR(name));
 
+extern unsigned int pl_to_array(SPTR(const playlist_t, playlist), const char PTR(PTR(dest)));
+extern unsigned int pl_to_names(SPTR(const playlist_t, playlist), const char PTR(PTR(dest)));
+
 #endif
