@@ -1,6 +1,39 @@
 #ifndef PLAYLIST_H
 #define PLAYLIST_H
 
+/*
+ * @startuml(id=playlist)
+ * class playlist {
+ *     +playlist_t* pl_alloc(void)
+ *     +void pl_free(playlist_t* playlist)
+ *     +unsigned int pl_add(playlist_t* playlist, const char* name)
+ *     +unsigned int pl_remove(playlist_t* playlist, playlist_item_t* item)
+ *     +int pl_read(playlist_t* playlist, const char* name)
+ *     +int pl_write(const playlist_t* playlist, const char* name)
+ *     +int pl_append(const char* playlist, const char* name)
+ *     +unsigned int pl_to_array(const playlist_t* playlist, const char** dest)
+ *     +unsigned int pl_to_names(const playlist_t* playlist, const char** dest)
+ * }
+ *
+ * struct playlist_item_t {
+ *     +playlist_item_t* prev
+ *     +playlist_item_t* next
+ *     +char* name
+ * }
+ *
+ * struct playlist_t {
+ *     +playlist_item_t* front
+ *     +playlist_item_t* back
+ *     +unsigned int count
+ * }
+ *
+ * playlist *-- playlist_t
+ * playlist_t *-- playlist_item_t
+ * playlist --> cmmdef
+ * playlist --> tac_string
+ * @enduml
+ */
+
 #include "cmmdef.h"
 
 #ifndef CMMDEF
