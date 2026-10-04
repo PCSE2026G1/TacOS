@@ -44,7 +44,7 @@ CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../tty -I../sio
 ifndef EMBEDDED
 CMFLAGS+=-I../pm                # 汎用版にだけpmがある
 else
-CMFLAGS+=-I../app               # 組込版にはappがある(ttyも標準では使用しない．．．)
+CMFLAGS+=-I../app -I../app/src  # 組込版にはappがある(ttyも標準では使用しない．．．)
 endif
 
 ifdef EMBEDDED
