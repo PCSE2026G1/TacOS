@@ -3,6 +3,7 @@
 () "cmm.h" as cmm_h
 () "cmmdef.h" as cmmdef_h
 () "debug.h" as debug_h
+() "home.h" as home_h
 () "key.h" as key_h
 () "lcd.h" as lcd_h
 () "random.h" as random_h
@@ -13,6 +14,8 @@
 [cmmdef.s] as cmmdef_s
 [debug.c] as debug_c
 [debug.s] as debug_s
+[home.c] as home_c
+[home.s] as home_s
 [key.c] as key_c
 [lcd.c] as lcd_c
 [random.s] as random_s
@@ -31,6 +34,11 @@ debug_c --> cmmdef_h
 debug_c --> cmm_h
 debug_c --> tac_assert_h
 debug_c --> tac_string_h
+
+home_h - home_c
+home_h - home_s
+home_c --> cmmdef_h
+home_c --> cmm_h
 
 key_h - key_c
 key_c --> cmmdef_h
