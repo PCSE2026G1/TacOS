@@ -107,7 +107,7 @@ extern int call(...);
 #define CALL0(x) call(x, 0)
 #else
 #define CALL(x, argc, ...) ((x)(__VA_ARGS__))
-#define CALL0(x) CALL(x)
+#define CALL0(x) CALL(x, 0)
 #endif
 
 #ifdef CMMDEF
