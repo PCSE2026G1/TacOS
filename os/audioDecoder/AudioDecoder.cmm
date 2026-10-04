@@ -1,6 +1,8 @@
 #include <fs.hmm>
+#include <mm.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>
+#include <string.hmm>
 #include <util.hmm>
 
 #include "AudioDecoder.hmm"
@@ -13,10 +15,18 @@
 #define MIN_SAMPLE_RATE_HALF  4000
 #define MAX_SAMPLE_RATE_HALF 24000
 #define PLAY_HISTORY_FILE "/playHistory.txt"
+#define PLAY_HISTORY_TEST_FILE "/HISTTEST.TXT"
+#define PLAY_HISTORY_BUFFER_SIZE 1024
 
 // SCI_AUDATA holds the sample rate in bits 15:1 and the channel flag in bit 0.
 int baseAudioData = 0;
 int speedValue = 100;
+int volumeValue = 40;
+char[] playHistoryBuffer = array(PLAY_HISTORY_BUFFER_SIZE);
+
+#ifdef DEBUG
+char[] historyTestActual = array(64);
+#endif
 
 boolean captureBaseAudioData() {
   int audioData = spiReadMp3Reg(SCI_AUDATA);
@@ -25,28 +35,85 @@ boolean captureBaseAudioData() {
   return true;
 }
 
-boolean addPlayHistory(char[] file) {
-  int fd = open(PLAY_HISTORY_FILE, APPEND_MODE);
-  if (fd<0) {
-    if (creat(PLAY_HISTORY_FILE)<0) return false;
-    fd = open(PLAY_HISTORY_FILE, APPEND_MODE);
-    if (fd<0) return false;
+boolean appendLineSafe(char[] historyFile, char[] line) {
+  int oldLength = 0;
+  int fd;
+  int lineLength = strLen(line);
+
+  if (lineLength+1>PLAY_HISTORY_BUFFER_SIZE) return false;
+
+  fd = open(historyFile, READ_MODE);
+  if (fd>=0) {
+    oldLength = read(fd, playHistoryBuffer, PLAY_HISTORY_BUFFER_SIZE);
+    if (oldLength<0) {
+      close(fd);
+      return false;
+    }
+    if (close(fd)<0) return false;
+    if (oldLength+lineLength+1>PLAY_HISTORY_BUFFER_SIZE) return false;
+  } else {
+    if (creat(historyFile)<0) return false;
   }
 
-  int length = strLen(file);
-  if (write(fd, file, length)!=length || write(fd, "\n", 1)!=1) {
+  fd = open(historyFile, WRITE_MODE);
+  if (fd<0) return false;
+
+  if (oldLength>0 &&
+      write(fd, playHistoryBuffer, oldLength)!=oldLength) {
     close(fd);
     return false;
   }
 
-  close(fd);
+  if (write(fd, line, lineLength)!=lineLength ||
+      write(fd, "\n", 1)!=1) {
+    close(fd);
+    return false;
+  }
+
+  if (close(fd)<0) return false;
   return true;
 }
+
+boolean addPlayHistory(char[] file) {
+  return appendLineSafe(PLAY_HISTORY_FILE, file);
+}
+
+#ifdef DEBUG
+public boolean testPlayHistory() {
+  char[] first = "/MP3/TEST1.MP3";
+  char[] second = "/MP3/TEST2.MP3";
+  char[] expected = "/MP3/TEST1.MP3\n/MP3/TEST2.MP3\n";
+  boolean result = true;
+
+  remove(PLAY_HISTORY_TEST_FILE);
+  if (!appendLineSafe(PLAY_HISTORY_TEST_FILE, first)) result = false;
+  if (result && !appendLineSafe(PLAY_HISTORY_TEST_FILE, second)) result = false;
+
+  if (result) {
+    int fd = open(PLAY_HISTORY_TEST_FILE, READ_MODE);
+    if (fd<0) {
+      result = false;
+    } else {
+      int length = read(fd, historyTestActual, 63);
+      if (length<0 || close(fd)<0) {
+        result = false;
+      } else {
+        historyTestActual[length] = '\0';
+        if (strCmp(historyTestActual, expected)!=0) result = false;
+      }
+    }
+  }
+
+  if (remove(PLAY_HISTORY_TEST_FILE)<0) result = false;
+  return result;
+}
+#endif
 
 // volume is the VS1011E attenuation value (0: maximum, 254: silence).
 public boolean setVolume(int volume) {
   if (volume<0 || volume>0xfe) return false;
   spiWriteMp3Reg(SCI_VOL, (volume<<8)|volume);
+  volumeValue = volume;
   return true;
 }
 
@@ -95,12 +162,18 @@ public int getPosition() {
 
 public boolean MP3playfile(char[] file, boolean save) {
   if (file==null) return false;
+  stop();
 
   baseAudioData = 0;
   speedValue = 100;
   spiResetMp3();
+  spiWriteMp3Reg(SCI_VOL, (volumeValue<<8)|volumeValue);
   if (!play(file)) return false;
-  if (save && !addPlayHistory(file)) return false;
+  if (save && !addPlayHistory(file)) {
+#ifdef DEBUG
+    printF("play history save failed:%s\n", file);
+#endif
+  }
   return true;
 }
 

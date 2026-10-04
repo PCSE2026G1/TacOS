@@ -1,0 +1,135 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <AudioDecoder.hmm>
+
+#include "lcd.hmm"
+#include "mp3Files.hmm"
+#include "spi.hmm"
+
+#define SW1 0x20
+#define SW2 0x10
+#define SW3 0x08
+#define SW4 0x04
+#define SW5 0x02
+#define SW6 0x01
+#define SWS 0x3f
+
+int audioTestSw0 = 0;
+int audioTestSw1 = 0;
+int audioTestVolume = 40;
+
+int audioTestReadSwitch() {
+  int sw = ~in(0x18)&SWS;
+  int stable = sw&audioTestSw0;
+  int pressed = (audioTestSw1^stable)&stable;
+  audioTestSw0 = sw;
+  audioTestSw1 = stable;
+  return pressed;
+}
+
+void audioTestResult(char[] name, boolean result) {
+#ifdef DEBUG
+  if (result) printF("[OK] %s\n", name);
+  else printF("[NG] %s\n", name);
+#endif
+}
+
+void audioTestDraw(char[] file) {
+  cls();
+  locateXY(0, 0); putStr("AudioDecoder TEST");
+  locateXY(0, 1); putStr("1:Play no history");
+  locateXY(0, 2); putStr("2:Play + history");
+  locateXY(0, 3); putStr("3:Speed +10%");
+  locateXY(0, 4); putStr("4:Speed -10%");
+  locateXY(0, 5); putStr("5:Volume 40/80");
+  locateXY(0, 6); putStr("6:Stop");
+  locateXY(0, 7);
+  if (file==null) putStr("No MP3 file");
+  else {
+    putStr("V:"); putDec(getVolume(), 3);
+    putStr(" P:"); putDec(getPosition(), 4);
+  }
+}
+
+void audioTestAutomatic() {
+#ifdef DEBUG
+  printF("--- AudioDecoder unit test ---\n");
+#endif
+
+  audioTestResult("volume reject -1", !setVolume(-1));
+  audioTestResult("volume reject 255", !setVolume(255));
+  audioTestResult("volume set 40", setVolume(40));
+  audioTestResult("volume get 40", getVolume()==40);
+  audioTestResult("speed reject zero", !setSpeed(0));
+  audioTestResult("null file rejected", !MP3playfile(null, false));
+  audioTestResult("total time unsupported", getTotalTime()==-1);
+
+#ifdef DEBUG
+  audioTestResult("history write/read", testPlayHistory());
+  printF("--- interactive test ready ---\n");
+#endif
+}
+
+public void shellMain() {
+  char[] file;
+  int refresh = 0;
+
+  spiResetLcd();
+  spiResetMp3();
+  mp3FilesInit();
+  file = mp3FilesGetPath(1);
+
+  audioTestAutomatic();
+  audioTestDraw(file);
+
+  for (;;) {
+    int sw = audioTestReadSwitch();
+
+    if ((sw&SW1)!=0 && file!=null) {
+      boolean result = MP3playfile(file, false);
+      audioTestResult("MP3playfile save=false", result);
+      audioTestDraw(file);
+    } else if ((sw&SW2)!=0 && file!=null) {
+      boolean result = MP3playfile(file, true);
+      audioTestResult("MP3playfile save=true", result);
+      audioTestDraw(file);
+    } else if ((sw&SW3)!=0 && file!=null) {
+      int speed = getSpeed()+10;
+      boolean result = setSpeed(speed);
+#ifdef DEBUG
+      if (result) printF("setSpeed(%d):OK\n", speed);
+      else printF("setSpeed(%d):NG\n", speed);
+#endif
+      if (result) audioTestResult("getSpeed", getSpeed()==speed);
+      audioTestDraw(file);
+    } else if ((sw&SW4)!=0 && file!=null) {
+      int speed = getSpeed()-10;
+      boolean result = setSpeed(speed);
+#ifdef DEBUG
+      if (result) printF("setSpeed(%d):OK\n", speed);
+      else printF("setSpeed(%d):NG\n", speed);
+#endif
+      if (result) audioTestResult("getSpeed", getSpeed()==speed);
+      audioTestDraw(file);
+    } else if ((sw&SW5)!=0) {
+      if (audioTestVolume==40) audioTestVolume = 80;
+      else audioTestVolume = 40;
+      setVolume(audioTestVolume);
+      audioTestResult("getVolume", getVolume()==audioTestVolume);
+      audioTestDraw(file);
+    } else if ((sw&SW6)!=0) {
+      MP3stop();
+#ifdef DEBUG
+      printF("MP3stop called position=%d\n", getPosition());
+#endif
+      audioTestDraw(file);
+    }
+
+    refresh = refresh+1;
+    if (refresh>=50) {
+      audioTestDraw(file);
+      refresh = 0;
+    }
+    sleep(10);
+  }
+}

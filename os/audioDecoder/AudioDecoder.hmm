@@ -10,4 +10,8 @@ public boolean MP3playfile(char[] file, boolean save);
 public void MP3stop();
 public int getTotalTime();
 
+#ifdef DEBUG
+public boolean testPlayHistory();
+#endif
+
 #endif
