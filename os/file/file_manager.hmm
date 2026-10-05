@@ -1,0 +1,8 @@
+#ifndef FILE_MANAGER_HMM
+#define FILE_MANAGER_HMM
+
+public int file_read_dir(int fd, char[] name);
+public int file_getDiskCapasity();
+public int file_getDiskUsage();
+
+#endif

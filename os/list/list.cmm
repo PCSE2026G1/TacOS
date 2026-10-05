@@ -1,0 +1,126 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include "list.hmm"
+#include "lcd.h"
+
+#define SW1 0x20
+#define SW2 0x10
+#define SW3 0x08
+#define SW4 0x04
+#define SW5 0x02
+#define SW6 0x01
+#define SWS 0x3f
+#define fileCount 6
+#define TITLE_LENGTH 16
+
+int sw0 = 0x00;
+int sw1 = 0x00;
+
+int readSw() {
+  int sw = ~in(0x18) & SWS;
+  int swd = sw & sw0;
+  int sw2 = (sw1 ^ swd) & swd;
+  sw0 = sw;
+  sw1 = swd;
+  return sw2;
+}
+
+int swToNum(int sw) {
+    int num = -1;
+    if ((sw & SW6)!=0) {                              // 6 番のスイッチが押された
+        num = 6;
+    } else if ((sw & SW5)!=0) {                       // 5 番のスイッチが押された
+        num = 5;
+    } else if ((sw & SW4)!=0) {                       // 4 番のスイッチが押された
+        num = 4;
+    } else if ((sw & SW3)!=0) {                       // 3 番のスイッチが押された
+        num = 3;
+    } else if ((sw & SW2)!=0) {                       // 2 番のスイッチが押された
+        num = 2;
+    } else if ((sw & SW1)!=0) {                       // 1 番のスイッチが押された
+        num = 1;
+    }
+    return num;
+}
+
+
+public int select(char[] title, char[][] fnames, int size) {
+
+    // 呼び出し元で画面を開いたキー入力を，選択操作として二重に扱わない．
+    while ((~in(0x18) & SWS) != 0) {
+        sleep(10);
+    }
+    sw0 = 0x00;
+    sw1 = 0x00;
+
+    // 呼び出し元の画面を残さず，FileChooserの画面へ完全に切り替える．
+    for (int y = 0; y < 8; y = y + 1) {
+        lcd_draw_string(0, y, "                ");
+    }
+    lcd_draw_string(0, 0, "# FILES #");
+    if (title[0]=='/' && title[1]=='\0') {
+        lcd_draw_string(0, 7, "ENT:OK BACK:EXIT");
+    } else {
+        lcd_draw_string(0, 7, "ENT:OK BACK:UP");
+    }
+
+    int loop = fileCount;
+    if(size < fileCount){
+        loop = size;
+    }
+
+    int cursor = 0;
+    int start = 0;
+
+    for (;;) {
+        int sw = readSw();
+        int num = swToNum(sw);
+
+        if (num == 5) { // 下
+            if (cursor < size - 1) {
+                cursor = cursor + 1;
+
+                if (cursor >= start + fileCount) {
+                    start = start + 1;
+                }
+            }
+        }
+        else if (num == 1) { // 上
+            if (cursor > 0) {
+                cursor = cursor - 1;
+
+                if (cursor < start) {
+                    start = start - 1;
+                }
+            }
+        }
+        else if (num == 6) { // 決定
+            break;
+        }
+        else if (num == 4) { // 戻る／キャンセル
+            return -1;
+        }
+
+        if (size <= fileCount) {
+            start = 0;
+        }
+        else if (start + fileCount > size) {
+            start = size - fileCount;
+        }
+
+        for (int i = 0; i < loop; i=i+1) {
+            lcd_draw_string(0,i+1,"                ");
+            int index = start + i;
+            if (index == cursor) {
+                lcd_draw_string(0, i+1, "*");
+            }
+            else {
+                lcd_draw_string(0, i+1, " ");
+            }
+            lcd_draw_string(2, i+1, fnames[index]);
+        }
+
+        sleep(10);
+    }
+    return cursor;
+}

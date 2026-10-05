@@ -111,6 +111,7 @@ add_tac_library(mod_0
     font.cmm
     lcd.cmm
     mp3Proc.cmm
+    FileChooserLcdAdapter.cmm
     Key.cmm
     ClockViewerTestProc.cmm
     appUtil.cmm
