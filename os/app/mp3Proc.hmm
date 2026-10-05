@@ -26,6 +26,11 @@
  *
  */
 
+#define MP3_STATE_STOPPED 0
+#define MP3_STATE_PLAYING 1
+#define MP3_STATE_FINISHED 2
+
 public boolean play(char[] path);
 public void stop();
+public int getPlaybackState();
 public void mp3Main();
