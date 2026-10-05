@@ -45,7 +45,9 @@ int swToNum(int sw) {
 
 
 public int select(char[] title, char[][] fnames, int size) {
-
+    for (int y = 0; y < 8; y = y + 1) {
+        lcd_draw_string(0, y, "                ");
+    }
     lcd_draw_string(0, 0, title);
 
     int loop = fileCount;
