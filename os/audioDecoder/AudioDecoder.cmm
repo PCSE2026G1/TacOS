@@ -17,6 +17,7 @@
 // SCI_AUDATA holds the sample rate in bits 15:1 and the channel flag in bit 0.
 int baseAudioData = 0;
 int speedValue = 100;
+int volumeValue = 40;
 
 boolean captureBaseAudioData() {
   int audioData = spiReadMp3Reg(SCI_AUDATA);
@@ -47,6 +48,7 @@ boolean addPlayHistory(char[] file) {
 public boolean setVolume(int volume) {
   if (volume<0 || volume>0xfe) return false;
   spiWriteMp3Reg(SCI_VOL, (volume<<8)|volume);
+  volumeValue = volume;
   return true;
 }
 
@@ -99,6 +101,7 @@ public boolean MP3playfile(char[] file, boolean save) {
   baseAudioData = 0;
   speedValue = 100;
   spiResetMp3();
+  spiWriteMp3Reg(SCI_VOL, (volumeValue<<8)|volumeValue);
   if (!play(file)) return false;
   if (save && !addPlayHistory(file)) return false;
   return true;

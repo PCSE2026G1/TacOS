@@ -1,0 +1,14 @@
+#ifndef KEY_HMM
+#define KEY_HMM
+
+#define KEY_UP 5
+#define KEY_LEFT 4
+#define KEY_RIGHT 3
+#define KEY_BACK 2
+#define KEY_DOWN 1
+#define KEY_ENTER 0
+
+public void key_step();
+public int key_pressed(int key);
+
+#endif

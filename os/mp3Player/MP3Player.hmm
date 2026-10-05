@@ -1,0 +1,10 @@
+#ifndef MP3PLAYER_HMM
+#define MP3PLAYER_HMM
+
+#define MP3PLAYER_LIST 0
+#define MP3PLAYER_INFO 1
+
+public void showMP3Player(int type);
+public boolean testMP3Player();
+
+#endif

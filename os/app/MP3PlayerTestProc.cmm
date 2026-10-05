@@ -1,0 +1,29 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <AudioDecoder.hmm>
+#include <MP3Player.hmm>
+
+#include "lcd.hmm"
+#include "spi.hmm"
+#include "mp3Files.hmm"
+#include "shellProc.hmm"
+
+public void shellMain() {
+  spiResetLcd();
+  spiResetMp3();
+  mp3FilesInit();
+  setVolume(40);
+
+  testMP3Player();
+
+#ifdef DEBUG
+  printF("--- MP3Player hardware test ---\n");
+  printF("List: SW1 up SW5 down SW6 play\n");
+  printF("Info: SW1/SW5 item SW2/SW3 value\n");
+  printF("Volume and speed change by 1\n");
+  printF("Repeat and Shuffle are exclusive\n");
+  printF("Wait for natural end to verify modes\n");
+#endif
+
+  showMP3Player(MP3PLAYER_LIST);
+}

@@ -1,0 +1,20 @@
+#include <util.hmm>
+#include "Key.hmm"
+
+#define KEY_MASK 0x3f
+
+int keyRaw = 0;
+int keyPrevious = 0;
+int keyCurrent = 0;
+
+public void key_step() {
+  int key = ~in(0x18) & KEY_MASK;
+  keyPrevious = keyCurrent;
+  keyCurrent = (keyCurrent | (key & keyRaw)) & (key | keyRaw);
+  keyRaw = key;
+}
+
+public int key_pressed(int key) {
+  if (key<0 || key>5) return 0;
+  return ((~keyPrevious & keyCurrent) >> key) & 1;
+}
