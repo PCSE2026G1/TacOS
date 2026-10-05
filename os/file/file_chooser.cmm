@@ -108,6 +108,7 @@ public void chooser(char[] filename)
 
         int index = select(current_path, arr, size);
 
+        // 戻るボタン．ルートではキャンセルし，それ以外では親へ移動する．
         if (index < 0) {
             for (int j = 0; j < size; j = j + 1) {
                 free(arr[j]);

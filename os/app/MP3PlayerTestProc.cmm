@@ -7,6 +7,22 @@
 #include "spi.hmm"
 #include "mp3Files.hmm"
 #include "shellProc.hmm"
+#include "Key.hmm"
+
+void waitToReopenMP3Player() {
+  cls();
+  locateXY(0, 1); putStr("MP3Player closed");
+  locateXY(0, 3); putStr("BACK return:OK");
+  locateXY(0, 6); putStr("ENT:Open again");
+#ifdef DEBUG
+  printF("MP3Player returned to caller\n");
+#endif
+  for (;;) {
+    key_step();
+    if (key_pressed(KEY_ENTER)!=0) return;
+    sleep(10);
+  }
+}
 
 public void shellMain() {
   spiResetLcd();
@@ -25,5 +41,8 @@ public void shellMain() {
   printF("Wait for natural end to verify modes\n");
 #endif
 
-  showMP3Player(MP3PLAYER_LIST);
+  for (;;) {
+    showMP3Player(MP3PLAYER_LIST);
+    waitToReopenMP3Player();
+  }
 }
