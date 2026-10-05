@@ -20,9 +20,6 @@ void reset_screen(){
 
 public void file_test()
 {
-    spiResetLcd();                                    //   sleepを使用するので
-    spiResetMp3();                                    //   プロセスが実行する
-    reset_screen();
     char[] filename = malloc(256);
     chooser(filename);
     free(filename);
@@ -61,6 +58,10 @@ int count_file(char[] dir_name)
 
 public void chooser(char[] filename)
 {
+    spiResetLcd();                                    //   sleepを使用するので
+    spiResetMp3();                                    //   プロセスが実行する
+    reset_screen();
+    
     char[] current_path = malloc(256);
     strCpy(current_path, "/");
 
