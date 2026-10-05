@@ -114,7 +114,6 @@ list(APPEND CMCPPFLAGS ${CMDIRS})
 list(APPEND CMFLAGS ${CMCPPFLAGS})
 
 set(APP_PROCESSES
-    2mj_play
 )
 add_executable(generate_process_s)
 target_sources(generate_process_s
@@ -171,8 +170,8 @@ add_tac_library(mod_0
     font.cmm
     lcd.cmm
     mp3Proc.cmm
-    FileChooserLcdAdapter.cmm
-    Key.cmm
+    FrontendAdapter.cmm
+    FrontendProc.cmm
     appUtil.cmm
     mp3Files.cmm
 

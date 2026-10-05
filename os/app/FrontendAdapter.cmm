@@ -1,0 +1,37 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <MP3Player.hmm>
+#include <ClockViewer.hmm>
+
+#include "Key.hmm"
+#include "lcd.hmm"
+#include "FrontendAdapter.hmm"
+
+void frontendUnavailable(char[] title) {
+  cls();
+  locateXY(0, 0); putStr(title);
+  locateXY(0, 3); putStr("Not connected");
+  locateXY(0, 7); putStr("BACK:Home");
+
+  for (;;) {
+    key_step();
+    if (key_pressed(KEY_BACK)!=0 || key_pressed(KEY_ENTER)!=0) return;
+    sleep(10);
+  }
+}
+
+public void mp3_show_files() {
+  showMP3Player(MP3PLAYER_LIST);
+}
+
+public void mp3_show_playlists() {
+  frontendUnavailable("# PLAYLISTS #");
+}
+
+public void mp3_show_history() {
+  frontendUnavailable("# HISTORY #");
+}
+
+public void clock_show() {
+  showClockViewer();
+}

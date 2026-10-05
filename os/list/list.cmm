@@ -57,11 +57,20 @@ public int select(char[] title, char[][] fnames, int size) {
     for (int y = 0; y < 8; y = y + 1) {
         lcd_draw_string(0, y, "                ");
     }
-    lcd_draw_string(0, 0, "# FILES #");
+    if (title[0]=='/') {
+        lcd_draw_string(0, 0, "# FILES #");
+    } else {
+        lcd_draw_string(0, 0, "# ");
+        lcd_draw_string(2, 0, title);
+        int titleLength = strLen(title);
+        if (titleLength<12) lcd_draw_string(titleLength+2, 0, " #");
+    }
     if (title[0]=='/' && title[1]=='\0') {
         lcd_draw_string(0, 7, "ENT:OK BACK:EXIT");
-    } else {
+    } else if (title[0]=='/') {
         lcd_draw_string(0, 7, "ENT:OK BACK:UP");
+    } else {
+        lcd_draw_string(0, 7, "ENT:OK");
     }
 
     int loop = fileCount;

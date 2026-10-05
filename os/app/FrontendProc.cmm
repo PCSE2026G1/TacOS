@@ -1,0 +1,31 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <AudioDecoder.hmm>
+#include <Clock.hmm>
+#include <ClockViewer.hmm>
+#include <MP3Player.hmm>
+
+#include "spi.hmm"
+#include "mp3Files.hmm"
+#include "shellProc.hmm"
+#include "FrontendAdapter.hmm"
+
+public void shellMain() {
+  char[] firstFile;
+
+  spiResetLcd();
+  spiResetMp3();
+  mp3FilesInit();
+  setVolume(40);
+
+  firstFile = mp3FilesGetPath(1);
+  if (firstFile!=null) setFile(firstFile);
+
+#ifdef DEBUG
+  testMP3Player();
+  testClockViewer();
+  printF("--- Home integration test ---\n");
+#endif
+
+  home_show();
+}

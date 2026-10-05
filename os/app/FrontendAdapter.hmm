@@ -1,0 +1,10 @@
+#ifndef FRONTEND_ADAPTER_HMM
+#define FRONTEND_ADAPTER_HMM
+
+public void home_show();
+public void mp3_show_files();
+public void mp3_show_playlists();
+public void mp3_show_history();
+public void clock_show();
+
+#endif
