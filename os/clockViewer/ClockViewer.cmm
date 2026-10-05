@@ -18,6 +18,12 @@
 #define CLOCK_FIELD_HOUR 0
 #define CLOCK_FIELD_MIN 1
 
+#define CLOCK_DATE_YEAR 0
+#define CLOCK_DATE_MON 1
+#define CLOCK_DATE_DAY 2
+#define CLOCK_DATE_HOUR 3
+#define CLOCK_DATE_MIN 4
+
 int clockViewerItem = CLOCK_ITEM_TIME;
 int clockViewerEdit = CLOCK_EDIT_NONE;
 int clockViewerField = CLOCK_FIELD_HOUR;
@@ -58,6 +64,32 @@ int clockViewerDaysInMonth(int year, int mon) {
   }
   if (mon==4 || mon==6 || mon==9 || mon==11) return 30;
   return 31;
+}
+
+void clockViewerClampDay(Time time) {
+  int maximum = clockViewerDaysInMonth(time.year, time.mon);
+  if (time.day>maximum) time.day = maximum;
+}
+
+/* Alarm日時編集で使用する値変更ロジックの単体テスト対象． */
+void clockViewerChangeDateField(Time time, int field, int difference) {
+  if (field==CLOCK_DATE_YEAR) {
+    time.year = time.year+difference;
+    if (time.year<0) time.year = 9999;
+    if (time.year>9999) time.year = 0;
+    clockViewerClampDay(time);
+  } else if (field==CLOCK_DATE_MON) {
+    time.mon = clockViewerWrap(time.mon-1, difference, 12)+1;
+    clockViewerClampDay(time);
+  } else if (field==CLOCK_DATE_DAY) {
+    time.day = clockViewerWrap(time.day-1, difference,
+                              clockViewerDaysInMonth(time.year, time.mon))+1;
+  } else if (field==CLOCK_DATE_HOUR) {
+    time.hour = clockViewerWrap(time.hour, difference, 24);
+  } else if (field==CLOCK_DATE_MIN) {
+    time.min = clockViewerWrap(time.min, difference, 60);
+  }
+  time.sec = 0;
 }
 
 void clockViewerNextDay(Time time) {
@@ -330,6 +362,30 @@ public boolean testClockViewer() {
       clockViewerTestLeap.year==2028 &&
       clockViewerTestLeap.mon==2 &&
       clockViewerTestLeap.day==29)) result = false;
+
+  clockViewerTestAlarm.year = 2000;
+  clockViewerTestAlarm.mon = 1;
+  clockViewerTestAlarm.day = 1;
+  clockViewerChangeDateField(clockViewerTestAlarm, CLOCK_DATE_YEAR, -1);
+  if (!clockViewerTestResult("year 2000 to 1999",
+      clockViewerTestAlarm.year==1999)) result = false;
+
+  clockViewerTestAlarm.year = 2028;
+  clockViewerTestAlarm.mon = 2;
+  clockViewerTestAlarm.day = 29;
+  clockViewerChangeDateField(clockViewerTestAlarm, CLOCK_DATE_YEAR, 1);
+  if (!clockViewerTestResult("leap day clamped next year",
+      clockViewerTestAlarm.year==2029 &&
+      clockViewerTestAlarm.mon==2 &&
+      clockViewerTestAlarm.day==28)) result = false;
+
+  clockViewerTestAlarm.year = 2026;
+  clockViewerTestAlarm.mon = 3;
+  clockViewerTestAlarm.day = 31;
+  clockViewerChangeDateField(clockViewerTestAlarm, CLOCK_DATE_MON, 1);
+  if (!clockViewerTestResult("month change clamps day",
+      clockViewerTestAlarm.mon==4 &&
+      clockViewerTestAlarm.day==30)) result = false;
 
   clockViewerAlarmTime.hour = 23;
   clockViewerAlarmTime.min = 58;
