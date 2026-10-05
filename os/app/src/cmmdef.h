@@ -86,19 +86,23 @@
 #define PTR(x) []x
 #define FPTR(t, x, ...) int x
 #define STRUCT(t) void
+#define SPTR(t, x) t x
 #else
 #define VOID void
 #define PTR(x) (*x)
 #define FPTR(t, x, ...) t (*x)(__VA_ARGS__)
 #define STRUCT(t) t
+#define SPTR(t, x) t (*x)
 #endif
 
 #ifdef CMMDEF
 #define INT_ADDR(x) addrof(x)
 #define F_ADDR(x) addrof(x)
+#define MEMBER(l, r) ((l).r)
 #else
 #define INT_ADDR(x) ((unsigned int)&(x))
 #define F_ADDR(x) (&(x))
+#define MEMBER(l, r) ((l)->r)
 #endif
 
 #ifdef CMMDEF

@@ -6,6 +6,7 @@
 () "home.h" as home_h
 () "key.h" as key_h
 () "lcd.h" as lcd_h
+() "playlist.h" as playlist_h
 () "random.h" as random_h
 () "stacksafe.h" as stacksafe_h
 () "tac_assert.h" as tac_assert_h
@@ -18,6 +19,7 @@
 [home.s] as home_s
 [key.c] as key_c
 [lcd.c] as lcd_c
+[playlist.c] as playlist_c
 [random.s] as random_s
 [stacksafe.s] as stacksafe_s
 [tac_string.c] as tac_string_c
@@ -50,6 +52,12 @@ lcd_c --> cmmdef_h
 lcd_c --> cmm_h
 lcd_c --> tac_assert_h
 lcd_c --> tac_string_h
+
+playlist_h - playlist_c
+playlist_c --> cmmdef_h
+playlist_c --> cmm_h
+playlist_c --> tac_assert_h
+playlist_c --> tac_string_h
 
 random_h - random_s
 
