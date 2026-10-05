@@ -10,8 +10,12 @@ Time timerTime = {0, 0, 0, 0, 0, 0};
 
 int sem;
 
+char[] currentFile = null;
 char[] alarmFile = null;
+char[] timerFile = null;
+
 boolean alarmSet = false;
+boolean timerSet = false;
 
 void copyTime(Time dst, Time src) {
     if (dst==null || src==null) panic("copyTime");
@@ -59,6 +63,32 @@ boolean isValidTime(Time time) {
     return true;
 }
 
+boolean isValidTimer(Time time) {
+  if (time==null) return false;
+
+  /*
+   * タイマーでは年月日を使用しない．
+   */
+  if (time.year!=0) return false;
+  if (time.mon!=0) return false;
+  if (time.day!=0) return false;
+
+  if (time.hour<0 || time.hour>23) return false;
+  if (time.min<0 || time.min>59) return false;
+  if (time.sec<0 || time.sec>59) return false;
+
+  /*
+   * 0時間0分0秒はタイマーとして認めない．
+   */
+  if (time.hour==0 &&
+      time.min==0 &&
+      time.sec==0) {
+    return false;
+  }
+
+  return true;
+}
+
 boolean timesEqual(Time time1, Time time2) {
     return time1.year==time2.year &&
            time1.mon==time2.mon &&
@@ -93,6 +123,34 @@ void increaseSecond(Time time){
     }
 }
 
+boolean isTimerZero(Time time) {
+  return time.hour==0 &&
+         time.min==0 &&
+         time.sec==0;
+}
+
+void decreaseSecond(Time time) {
+  if (isTimerZero(time)) return;
+
+  if (time.sec>0) {
+    time.sec = time.sec-1;
+    return;
+  }
+
+  time.sec = 59;
+
+  if (time.min>0) {
+    time.min = time.min-1;
+    return;
+  }
+
+  time.min = 59;
+
+  if (time.hour>0) {
+    time.hour = time.hour-1;
+  }
+}
+
 public void getTime(Time time) {
     semP(sem);
     copyTime(time, currentTime);
@@ -114,16 +172,38 @@ public void getAlarm(Time time) {
 }
 
 public boolean setAlarm(Time time) {
+    char[] newFile;
+    char[] oldFile;
+
     if (!isValidTime(time)) return false;
 
     semP(sem);
-    if (alarmFile==null) {
+    if (currentFile==null) {
         semV(sem);
         return false;
     }
+
+    int length = strLen(currentFile);
+
+    newFile = malloc(length+1);
+    if (newFile==null) {
+        semV(sem);
+        return false;
+    }
+
+    strCpy(newFile, currentFile);
+
+    oldFile = alarmFile;
+    alarmFile = newFile;
+
     copyTime(alarmTime, time);
     alarmSet = true;
+
     semV(sem);
+
+    if (oldFile!=null) {
+        free(oldFile);
+    }
     return true;
 }
 
@@ -142,7 +222,7 @@ public void clearAlarm() {
 
 public char[] getFile() {
     semP(sem);
-    char[] file = alarmFile;
+    char[] file = currentFile;
     semV(sem);
     return file;
 }
@@ -157,9 +237,8 @@ public boolean setFile(char[] file) {
     }
 
     semP(sem);
-    char[] oldFile = alarmFile;
-    alarmFile = newFile;
-    if (alarmFile==null) alarmSet = false;
+    char[] oldFile = currentFile;
+    currentFile = newFile;
     semV(sem);
 
     if (oldFile!=null) free(oldFile);
@@ -167,42 +246,101 @@ public boolean setFile(char[] file) {
 }
 
 public boolean setTimer(Time time) {
-    if (!isValidTime(time)) return false;
+    char[] newFile;
+    char[] oldFile;
+
+    if (!isValidTimer(time)) return false;
 
     semP(sem);
+
+    if (currentFile==null) {
+        semV(sem);
+        return false;
+    }
+    int length = strLen(currentFile);
+    newFile = malloc(length+1);
+
+    if (newFile==null){
+        semV(sem);
+        return false;
+    }
+    strCpy(newFile, currentFile);
+
+    oldFile = timerFile;
+    timerFile = newFile;
+
     copyTime(timerTime, time);
+    timerSet = true;
     semV(sem);
+
+    if (oldFile!=null) {
+        free(oldFile);
+    }
+
     return true;
+}
+
+public void getTimer(Time time) {
+    semP(sem);
+    copyTime(time, timerTime);
+    semV(sem);
 }
 
 public void clockMain(){
     for(;;){
         sleep(1000);
-        boolean playAlarm = false;
-        char[] file = null;
+        boolean alarmDue = false;
+        boolean timerDue = false;
+
+        char[] sourceFile = null;
+        char[] playFile = null;
 
         semP(sem);
         increaseSecond(currentTime);
 
         if (alarmSet && timesEqual(currentTime, alarmTime)) {
             alarmSet = false;
-            if (alarmFile!=null) {
-                int length = strLen(alarmFile);
-                file = malloc(length+1);
-                if (file==null) panic("clock alarm malloc");
-                strCpy(file, alarmFile);
-                playAlarm = true;
+            alarmDue = true;
+        }
+
+        if (timerSet) {
+            decreaseSecond(timerTime);
+
+            if (isTimerZero(timerTime)) {
+                timerSet = false;
+                timerDue = true;
             }
         }
+
+        if (alarmDue) {
+            sourceFile = alarmFile;
+        }
+
+        if (timerDue) {
+            sourceFile = timerFile;
+        }
+
+        if (sourceFile!=null){
+            int length = strLen(sourceFile);
+
+            playFile = malloc(length+1);
+
+            if(playFile==null) {
+                panic("clock play file malloc");
+            }
+
+            strCpy(playFile, sourceFile);
+        }
+
         semV(sem);
 
-        if (playAlarm) {
-            if (!MP3playfile(file, false)) {
+        if (playFile!=null) {
+            if (!MP3playfile(playFile, false)) {
 #ifdef DEBUG
                 dbgPutStr("alarm play failed\n");
 #endif
             }
-            free(file);
+            free(playFile);
         }
     }
 }

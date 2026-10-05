@@ -1,0 +1,277 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <string.hmm>
+#include <Clock.hmm>
+#include <AudioDecoder.hmm>
+
+#include "lcd.hmm"
+#include "spi.hmm"
+#include "mp3Files.hmm"
+#include "shellProc.hmm"
+
+#define SW1 0x20
+#define SW2 0x10
+#define SW3 0x08
+#define SW4 0x04
+#define SW5 0x02
+#define SW6 0x01
+#define SWS 0x3f
+
+int clockTestSwRaw = 0;
+int clockTestSwStable = 0;
+
+Time testNow = {2026, 12, 31, 23, 59, 50};
+Time testAlarm = {2026, 12, 31, 23, 59, 55};
+Time testInvalid = {2025, 2, 29, 12, 0, 0};
+Time testTimer5 = {0, 0, 0, 0, 0, 5};
+Time testTimer10 = {0, 0, 0, 0, 0, 10};
+Time testTimer1 = {0, 0, 0, 0, 0, 1};
+Time testTimerZero = {0, 0, 0, 0, 0, 0};
+Time readTime = {0, 0, 0, 0, 0, 0};
+
+char[] alarmPath = null;
+char[] timerPath = null;
+char[] alarmPathBuffer = array(18);
+char[] timerPathBuffer = array(18);
+
+boolean sameTime(Time a, Time b) {
+  return a.year==b.year && a.mon==b.mon && a.day==b.day &&
+         a.hour==b.hour && a.min==b.min && a.sec==b.sec;
+}
+
+void printResult(char[] name, boolean ok) {
+#ifdef DEBUG
+  if (ok) printF("[OK] %s\n", name);
+  else printF("[NG] %s\n", name);
+#endif
+}
+
+int readClockTestSwitch() {
+  int sw = ~in(0x18) & SWS;
+  int stable = sw & clockTestSwRaw;
+  int pushed = (clockTestSwStable ^ stable) & stable;
+  clockTestSwRaw = sw;
+  clockTestSwStable = stable;
+  return pushed;
+}
+
+int switchNumber(int sw) {
+  if ((sw & SW6)!=0) return 6;
+  if ((sw & SW5)!=0) return 5;
+  if ((sw & SW4)!=0) return 4;
+  if ((sw & SW3)!=0) return 3;
+  if ((sw & SW2)!=0) return 2;
+  if ((sw & SW1)!=0) return 1;
+  return 0;
+}
+
+void showTestMenu() {
+  cls();
+  locateXY(0, 0); putStr("Clock test");
+  locateXY(0, 2); putStr("1 Alarm 5s");
+  locateXY(0, 3); putStr("2 Timer 5s");
+  locateXY(0, 4); putStr("3 Alarm->Timer");
+  locateXY(0, 5); putStr("4 Timer->Alarm");
+  locateXY(0, 6); putStr("5 Same time");
+  locateXY(0, 7); putStr("6 Stop/clear A");
+}
+
+void resetAbsoluteTimes(int alarmSecond) {
+  testNow.year = 2026;
+  testNow.mon = 12;
+  testNow.day = 31;
+  testNow.hour = 23;
+  testNow.min = 59;
+  testNow.sec = 50;
+
+  testAlarm.year = 2026;
+  testAlarm.mon = 12;
+  testAlarm.day = 31;
+  testAlarm.hour = 23;
+  testAlarm.min = 59;
+  testAlarm.sec = alarmSecond;
+}
+
+void runClockApiTest() {
+  boolean ok;
+  char[] copiedFile;
+
+#ifdef DEBUG
+  printF("--- Clock API test ---\n");
+#endif
+
+  ok = setTime(testNow);
+  getTime(readTime);
+  printResult("setTime/getTime", ok && sameTime(testNow, readTime));
+
+  ok = !setTime(testInvalid);
+  getTime(readTime);
+  printResult("invalid time rejected", ok && sameTime(testNow, readTime));
+
+  ok = setFile(alarmPath);
+  copiedFile = getFile();
+  printResult("setFile/getFile", ok && copiedFile!=null &&
+              strCmp(copiedFile, alarmPath)==0);
+
+  ok = setAlarm(testAlarm);
+  getAlarm(readTime);
+  printResult("setAlarm/getAlarm", ok && isAlarmSet() &&
+              sameTime(testAlarm, readTime));
+  clearAlarm();
+  printResult("clearAlarm", !isAlarmSet());
+
+  ok = setFile(null) && !setAlarm(testAlarm);
+  printResult("alarm without file rejected", ok);
+
+  ok = setFile(timerPath) && setTimer(testTimer1);
+  getTimer(readTime);
+  printResult("setTimer/getTimer", ok && sameTime(testTimer1, readTime));
+  printResult("zero timer rejected", !setTimer(testTimerZero));
+
+  /* 公開APIにTimer解除関数がないため，1秒で発火させて後始末する． */
+  sleep(1200);
+  MP3stop();
+
+  setFile(alarmPath);
+#ifdef DEBUG
+  printF("Clock API test complete\n");
+#endif
+}
+
+void armAlarmOnly() {
+  resetAbsoluteTimes(55);
+  clearAlarm();
+  MP3stop();
+  if (alarmPath!=null && setTime(testNow) && setFile(alarmPath) &&
+      setAlarm(testAlarm)) {
+#ifdef DEBUG
+    printF("T1 armed: Alarm in 5 sec\n");
+#endif
+  } else {
+#ifdef DEBUG
+    printF("T1 arm NG\n");
+#endif
+  }
+}
+
+void armTimerOnly() {
+  clearAlarm();
+  MP3stop();
+  if (timerPath!=null && setFile(timerPath) && setTimer(testTimer5)) {
+#ifdef DEBUG
+    printF("T2 armed: Timer in 5 sec\n");
+#endif
+  } else {
+#ifdef DEBUG
+    printF("T2 arm NG\n");
+#endif
+  }
+}
+
+void armAlarmThenTimer() {
+  resetAbsoluteTimes(55);
+  clearAlarm();
+  MP3stop();
+  if (alarmPath!=null && timerPath!=null && setTime(testNow) &&
+      setFile(alarmPath) && setAlarm(testAlarm) &&
+      setFile(timerPath) && setTimer(testTimer10)) {
+#ifdef DEBUG
+    printF("T3: 5 sec Alarm, 10 sec Timer\n");
+#endif
+  } else {
+#ifdef DEBUG
+    printF("T3 arm NG\n");
+#endif
+  }
+}
+
+void armTimerThenAlarm() {
+  resetAbsoluteTimes(55);
+  testAlarm.year = 2027;
+  testAlarm.mon = 1;
+  testAlarm.day = 1;
+  testAlarm.hour = 0;
+  testAlarm.min = 0;
+  testAlarm.sec = 0;
+  clearAlarm();
+  MP3stop();
+  if (alarmPath!=null && timerPath!=null && setTime(testNow) &&
+      setFile(timerPath) && setTimer(testTimer5) &&
+      setFile(alarmPath) && setAlarm(testAlarm)) {
+#ifdef DEBUG
+    printF("T4: 5 sec Timer, 10 sec Alarm\n");
+#endif
+  } else {
+#ifdef DEBUG
+    printF("T4 arm NG\n");
+#endif
+  }
+}
+
+void armSameTime() {
+  resetAbsoluteTimes(55);
+  clearAlarm();
+  MP3stop();
+  if (alarmPath!=null && timerPath!=null && setTime(testNow) &&
+      setFile(alarmPath) && setAlarm(testAlarm) &&
+      setFile(timerPath) && setTimer(testTimer5)) {
+#ifdef DEBUG
+    printF("T5: same time, expect Timer file\n");
+#endif
+  } else {
+#ifdef DEBUG
+    printF("T5 arm NG\n");
+#endif
+  }
+}
+
+public void shellMain() {
+  char[] foundPath;
+
+  spiResetLcd();
+  spiResetMp3();
+  mp3FilesInit();
+
+  /*
+   * mp3FilesGetPath() は共通の内部バッファを返す．
+   * 次の呼び出しで上書きされるため，各パスを別の配列へコピーする．
+   */
+  foundPath = mp3FilesGetPath(1);
+  if (foundPath!=null) {
+    strCpy(alarmPathBuffer, foundPath);
+    alarmPath = alarmPathBuffer;
+  }
+
+  foundPath = mp3FilesGetPath(2);
+  if (foundPath!=null) {
+    strCpy(timerPathBuffer, foundPath);
+    timerPath = timerPathBuffer;
+  }
+  setVolume(40);
+
+  runClockApiTest();
+  showTestMenu();
+
+#ifdef DEBUG
+  printF("--- Clock event test ---\n");
+  if (alarmPath!=null) printF("alarm file=%s\n", alarmPath);
+  if (timerPath!=null) printF("timer file=%s\n", timerPath);
+#endif
+
+  for (;;) {
+    int num = switchNumber(readClockTestSwitch());
+    if (num==1) armAlarmOnly();
+    else if (num==2) armTimerOnly();
+    else if (num==3) armAlarmThenTimer();
+    else if (num==4) armTimerThenAlarm();
+    else if (num==5) armSameTime();
+    else if (num==6) {
+      MP3stop();
+      clearAlarm();
+#ifdef DEBUG
+      printF("stopped; Alarm cleared\n");
+#endif
+    }
+    sleep(10);
+  }
+}

@@ -15,6 +15,7 @@ public char[] getFile();
 public boolean setFile(char[] file);
 
 public boolean setTimer(Time time);
+public void getTimer(Time time);
 
 public void clockMain();
 public void ClockInit();
