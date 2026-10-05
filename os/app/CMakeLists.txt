@@ -114,6 +114,7 @@ list(APPEND CMCPPFLAGS ${CMDIRS})
 list(APPEND CMFLAGS ${CMCPPFLAGS})
 
 set(APP_PROCESSES
+    2mj_play
 )
 add_executable(generate_process_s)
 target_sources(generate_process_s
@@ -189,4 +190,5 @@ add_tac_library(mod_0
     src/home.c
     src/minesweeper0.s
     src/minesweeper.c
+    src/mahjong.c
 )
