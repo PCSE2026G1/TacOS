@@ -405,6 +405,32 @@ public boolean testClockViewer() {
       clockViewerTestLeap.mon==2 &&
       clockViewerTestLeap.day==29)) result = false;
 
+#ifdef DEBUG
+  clockViewerTestAlarm.year = 2000;
+  clockViewerTestAlarm.mon = 1;
+  clockViewerTestAlarm.day = 1;
+  clockViewerChangeField(clockViewerTestAlarm, CLOCK_FIELD_YEAR, -1);
+  if (!clockViewerTestResult("year 2000 to 1999",
+      clockViewerTestAlarm.year==1999)) result = false;
+
+  clockViewerTestAlarm.year = 2028;
+  clockViewerTestAlarm.mon = 2;
+  clockViewerTestAlarm.day = 29;
+  clockViewerChangeField(clockViewerTestAlarm, CLOCK_FIELD_YEAR, 1);
+  if (!clockViewerTestResult("leap day clamped next year",
+      clockViewerTestAlarm.year==2029 &&
+      clockViewerTestAlarm.mon==2 &&
+      clockViewerTestAlarm.day==28)) result = false;
+
+  clockViewerTestAlarm.year = 2026;
+  clockViewerTestAlarm.mon = 3;
+  clockViewerTestAlarm.day = 31;
+  clockViewerChangeField(clockViewerTestAlarm, CLOCK_FIELD_MON, 1);
+  if (!clockViewerTestResult("month change clamps day",
+      clockViewerTestAlarm.mon==4 &&
+      clockViewerTestAlarm.day==30)) result = false;
+#endif
+
   clockViewerAlarmTime.hour = 23;
   clockViewerAlarmTime.min = 58;
   clockViewerChangeAlarmMinutes(5);

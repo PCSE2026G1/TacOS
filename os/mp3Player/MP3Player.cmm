@@ -82,6 +82,18 @@ int selectionAfterFinish(int current, int count, boolean repeat,
   return 0;
 }
 
+int playlistSelectionAfterFinish(int current, int count, boolean repeat,
+                                 boolean shuffle, int randomValue) {
+  if (count<=0) return -1;
+  if (repeat) return current;
+  if (!shuffle) return -1;
+  if (count==1) return 0;
+
+  int next = (randomValue&0x7fff)%count;
+  if (next==current) next = (next+1)%count;
+  return next;
+}
+
 boolean printMP3PlayerTest(char[] name, boolean result) {
 #ifdef DEBUG
   if (result) printF("[OK] %s\n", name);
@@ -366,18 +378,9 @@ void handleNaturalFinish(int count) {
   if (!playerPlaying || getPlaybackState()!=MP3_STATE_FINISHED) return;
 
   if (playerSourcePlaylist) {
-    int nextIndex = -1;
-    if (playerRepeat) {
-      nextIndex = playerPlaylistIndex;
-    } else if (playerShuffle && playerPlaylistCount>0) {
-      if (playerPlaylistCount==1) nextIndex = 0;
-      else {
-        nextIndex = (rand()&0x7fff)%playerPlaylistCount;
-        if (nextIndex==playerPlaylistIndex) {
-          nextIndex = (nextIndex+1)%playerPlaylistCount;
-        }
-      }
-    }
+    int nextIndex = playlistSelectionAfterFinish(
+        playerPlaylistIndex, playerPlaylistCount,
+        playerRepeat, playerShuffle, rand());
     playerPlaying = false;
     if (nextIndex>=0) playPlaylistFile(nextIndex);
     else {
@@ -478,6 +481,19 @@ public boolean testMP3Player() {
                          selectionAfterFinish(1, 1, false, true, 9)==1)) {
     result = false;
   }
+#ifdef DEBUG
+  if (!printMP3PlayerTest("playlist repeat keeps current",
+      playlistSelectionAfterFinish(2, 4, true, false, 0)==2)) result = false;
+  if (!printMP3PlayerTest("playlist shuffle changes current",
+      playlistSelectionAfterFinish(2, 4, false, true, 2)!=2)) result = false;
+  if (!printMP3PlayerTest("playlist shuffle stays in range",
+      playlistSelectionAfterFinish(3, 4, false, true, 32767)>=0 &&
+      playlistSelectionAfterFinish(3, 4, false, true, 32767)<4)) result = false;
+  if (!printMP3PlayerTest("playlist no mode stops",
+      playlistSelectionAfterFinish(2, 4, false, false, 0)==-1)) result = false;
+  if (!printMP3PlayerTest("playlist single shuffle",
+      playlistSelectionAfterFinish(0, 1, false, true, 9)==0)) result = false;
+#endif
 
   if (count>0) {
     boolean filesValid = true;
