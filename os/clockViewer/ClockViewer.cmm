@@ -1,0 +1,456 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <Clock.hmm>
+#include <AudioDecoder.hmm>
+
+#include "Key.hmm"
+#include "lcd.hmm"
+#include "ClockViewer.hmm"
+
+#define CLOCK_ITEM_TIME 0
+#define CLOCK_ITEM_ALARM 1
+#define CLOCK_ITEM_FILE 2
+#define CLOCK_ITEM_COUNT 3
+
+#define CLOCK_EDIT_NONE 0
+#define CLOCK_EDIT_TIME 1
+
+#define CLOCK_FIELD_HOUR 0
+#define CLOCK_FIELD_MIN 1
+
+int clockViewerItem = CLOCK_ITEM_TIME;
+int clockViewerEdit = CLOCK_EDIT_NONE;
+int clockViewerField = CLOCK_FIELD_HOUR;
+
+Time clockViewerNow = {1900, 1, 1, 0, 0, 0};
+Time clockViewerEditTime = {1900, 1, 1, 0, 0, 0};
+Time clockViewerAlarmTime = {1900, 1, 1, 7, 0, 0};
+Time clockViewerTestNow = {2026, 12, 31, 23, 59, 30};
+Time clockViewerTestAlarm = {1900, 1, 1, 0, 0, 0};
+Time clockViewerTestLeap = {2028, 2, 28, 0, 0, 0};
+boolean clockViewerAlarmPreviouslySet = false;
+boolean clockViewerAlarmRinging = false;
+
+int clockViewerNextItem(int item, int difference) {
+  item = item+difference;
+  if (item<0) item = CLOCK_ITEM_COUNT-1;
+  if (item>=CLOCK_ITEM_COUNT) item = 0;
+  return item;
+}
+
+int clockViewerWrap(int value, int difference, int maximum) {
+  value = value+difference;
+  if (value<0) value = maximum-1;
+  if (value>=maximum) value = 0;
+  return value;
+}
+
+boolean clockViewerLeapYear(int year) {
+  if ((year%400)==0) return true;
+  if ((year%100)==0) return false;
+  return (year%4)==0;
+}
+
+int clockViewerDaysInMonth(int year, int mon) {
+  if (mon==2) {
+    if (clockViewerLeapYear(year)) return 29;
+    return 28;
+  }
+  if (mon==4 || mon==6 || mon==9 || mon==11) return 30;
+  return 31;
+}
+
+void clockViewerNextDay(Time time) {
+  time.day = time.day+1;
+  if (time.day<=clockViewerDaysInMonth(time.year, time.mon)) return;
+
+  time.day = 1;
+  time.mon = time.mon+1;
+  if (time.mon<=12) return;
+
+  time.mon = 1;
+  time.year = time.year+1;
+}
+
+void clockViewerCopyTime(Time dst, Time src) {
+  dst.year = src.year;
+  dst.mon = src.mon;
+  dst.day = src.day;
+  dst.hour = src.hour;
+  dst.min = src.min;
+  dst.sec = src.sec;
+}
+
+boolean clockViewerTimePassed(Time alarm, Time now) {
+  if (alarm.hour<now.hour) return true;
+  if (alarm.hour>now.hour) return false;
+  if (alarm.min<now.min) return true;
+  if (alarm.min>now.min) return false;
+  return alarm.sec<=now.sec;
+}
+
+void clockViewerMakeAlarm(Time alarm, Time now, int hour, int min) {
+  clockViewerCopyTime(alarm, now);
+  alarm.hour = hour;
+  alarm.min = min;
+  alarm.sec = 0;
+
+  if (clockViewerTimePassed(alarm, now)) {
+    clockViewerNextDay(alarm);
+  }
+}
+
+void clockViewerChangeAlarmMinutes(int difference) {
+  int total = clockViewerAlarmTime.hour*60+
+              clockViewerAlarmTime.min+difference;
+
+  while (total<0) total = total+24*60;
+  while (total>=24*60) total = total-24*60;
+
+  clockViewerAlarmTime.hour = total/60;
+  clockViewerAlarmTime.min = total%60;
+  clockViewerAlarmTime.sec = 0;
+}
+
+void clockViewerPutTwoDigits(int value) {
+  putCh(chr(ord('0')+(value/10)%10));
+  putCh(chr(ord('0')+value%10));
+}
+
+void clockViewerPutTime(Time time) {
+  clockViewerPutTwoDigits(time.hour);
+  putCh(':');
+  clockViewerPutTwoDigits(time.min);
+}
+
+void clockViewerPutYear(int year) {
+  putCh(chr(ord('0')+(year/1000)%10));
+  putCh(chr(ord('0')+(year/100)%10));
+  putCh(chr(ord('0')+(year/10)%10));
+  putCh(chr(ord('0')+year%10));
+}
+
+void clockViewerPutDate(Time time) {
+  clockViewerPutYear(time.year);
+  putCh('/');
+  clockViewerPutTwoDigits(time.mon);
+  putCh('/');
+  clockViewerPutTwoDigits(time.day);
+}
+
+void clockViewerPutShortFile(char[] file) {
+  if (file==null) {
+    putStr("(none)");
+    return;
+  }
+
+  int start = 0;
+  int length = strLen(file);
+  for (int i=0; i<length; i=i+1) {
+    if (file[i]=='/') start = i+1;
+  }
+
+  int end = length;
+  if (length-start>=4 &&
+      file[length-4]=='.' &&
+      (file[length-3]=='M' || file[length-3]=='m') &&
+      (file[length-2]=='P' || file[length-2]=='p') &&
+      file[length-1]=='3') {
+    end = length-4;
+  }
+
+  int printed = 0;
+  for (int i=start; i<end && printed<10; i=i+1) {
+    putCh(file[i]);
+    printed = printed+1;
+  }
+}
+
+void clockViewerDraw() {
+  Time displayTime;
+  if (clockViewerEdit==CLOCK_EDIT_TIME) displayTime = clockViewerEditTime;
+  else displayTime = clockViewerNow;
+
+  cls();
+  locateXY(0, 0); putStr("# CLOCK #");
+  locateXY(0, 1); clockViewerPutDate(displayTime);
+
+  locateXY(0, 2);
+  if (clockViewerItem==CLOCK_ITEM_TIME) putCh('*');
+  else putCh(' ');
+  putStr("Time ");
+  clockViewerPutTime(displayTime);
+
+  locateXY(0, 3);
+  if (clockViewerItem==CLOCK_ITEM_ALARM) putCh('*');
+  else putCh(' ');
+  putStr("Alarm ");
+  if (clockViewerAlarmRinging) {
+    putStr("RING");
+  } else {
+    clockViewerPutTime(clockViewerAlarmTime);
+    putCh(' ');
+    if (isAlarmSet()) putStr("ON");
+    else putStr("OFF");
+  }
+
+  locateXY(0, 4);
+  if (clockViewerItem==CLOCK_ITEM_FILE) putCh('*');
+  else putCh(' ');
+  putStr("File ");
+  clockViewerPutShortFile(getFile());
+
+  locateXY(0, 6);
+  if (clockViewerEdit==CLOCK_EDIT_TIME) {
+    putStr("UP/DN change");
+    locateXY(0, 7);
+    if (clockViewerField==CLOCK_FIELD_HOUR) putStr("< HOUR > ENT:OK");
+    else putStr("< MIN  > ENT:OK");
+  } else {
+    putStr("UP/DN select");
+    locateXY(0, 7); putStr("ENT:OK BACK:Home");
+  }
+}
+
+void clockViewerLoadState() {
+  getTime(clockViewerNow);
+  getAlarm(clockViewerAlarmTime);
+
+  if (!isAlarmSet()) {
+    clockViewerAlarmTime.year = clockViewerNow.year;
+    clockViewerAlarmTime.mon = clockViewerNow.mon;
+    clockViewerAlarmTime.day = clockViewerNow.day;
+    clockViewerAlarmTime.sec = 0;
+  }
+}
+
+void clockViewerUpdateAlarmState() {
+  boolean alarmNowSet = isAlarmSet();
+  if (clockViewerAlarmPreviouslySet && !alarmNowSet) {
+    clockViewerAlarmRinging = true;
+  }
+  clockViewerAlarmPreviouslySet = alarmNowSet;
+}
+
+void clockViewerToggleAlarm() {
+  if (clockViewerAlarmRinging) {
+    MP3stop();
+    clockViewerAlarmRinging = false;
+#ifdef DEBUG
+    printF("ClockViewer alarm stopped\n");
+#endif
+    return;
+  }
+
+  if (isAlarmSet()) {
+    clearAlarm();
+    clockViewerAlarmPreviouslySet = false;
+#ifdef DEBUG
+    printF("ClockViewer alarm=OFF\n");
+#endif
+    return;
+  }
+
+  getTime(clockViewerNow);
+  clockViewerMakeAlarm(clockViewerAlarmTime,
+                       clockViewerNow,
+                       clockViewerAlarmTime.hour,
+                       clockViewerAlarmTime.min);
+
+  if (setAlarm(clockViewerAlarmTime)) {
+    clockViewerAlarmPreviouslySet = true;
+#ifdef DEBUG
+    printF("ClockViewer alarm=ON %d/%d/%d %d:%d\n",
+           clockViewerAlarmTime.year,
+           clockViewerAlarmTime.mon,
+           clockViewerAlarmTime.day,
+           clockViewerAlarmTime.hour,
+           clockViewerAlarmTime.min);
+#endif
+  } else {
+#ifdef DEBUG
+    printF("ClockViewer alarm=NG file missing\n");
+#endif
+  }
+}
+
+boolean clockViewerTestResult(char[] name, boolean result) {
+#ifdef DEBUG
+  if (result) printF("[OK] %s\n", name);
+  else printF("[NG] %s\n", name);
+#endif
+  return result;
+}
+
+public boolean testClockViewer() {
+  boolean result = true;
+
+  clockViewerTestNow.year = 2026;
+  clockViewerTestNow.mon = 12;
+  clockViewerTestNow.day = 31;
+  clockViewerTestNow.hour = 23;
+  clockViewerTestNow.min = 59;
+  clockViewerTestNow.sec = 30;
+
+  clockViewerTestLeap.year = 2028;
+  clockViewerTestLeap.mon = 2;
+  clockViewerTestLeap.day = 28;
+
+#ifdef DEBUG
+  printF("--- ClockViewer test ---\n");
+#endif
+
+  if (!clockViewerTestResult("item down",
+      clockViewerNextItem(CLOCK_ITEM_TIME, 1)==CLOCK_ITEM_ALARM)) result = false;
+  if (!clockViewerTestResult("item wrap down",
+      clockViewerNextItem(CLOCK_ITEM_FILE, 1)==CLOCK_ITEM_TIME)) result = false;
+  if (!clockViewerTestResult("item wrap up",
+      clockViewerNextItem(CLOCK_ITEM_TIME, -1)==CLOCK_ITEM_FILE)) result = false;
+  if (!clockViewerTestResult("hour wrap",
+      clockViewerWrap(23, 1, 24)==0)) result = false;
+  if (!clockViewerTestResult("minute wrap",
+      clockViewerWrap(0, -1, 60)==59)) result = false;
+
+  clockViewerMakeAlarm(clockViewerTestAlarm, clockViewerTestNow, 23, 59);
+  if (!clockViewerTestResult("past alarm next day",
+      clockViewerTestAlarm.year==2027 &&
+      clockViewerTestAlarm.mon==1 &&
+      clockViewerTestAlarm.day==1)) result = false;
+
+  clockViewerMakeAlarm(clockViewerTestAlarm, clockViewerTestNow, 0, 5);
+  if (!clockViewerTestResult("future alarm next day",
+      clockViewerTestAlarm.year==2027 &&
+      clockViewerTestAlarm.mon==1 &&
+      clockViewerTestAlarm.day==1 &&
+      clockViewerTestAlarm.hour==0 &&
+      clockViewerTestAlarm.min==5)) result = false;
+
+  clockViewerNextDay(clockViewerTestLeap);
+  if (!clockViewerTestResult("leap day",
+      clockViewerTestLeap.year==2028 &&
+      clockViewerTestLeap.mon==2 &&
+      clockViewerTestLeap.day==29)) result = false;
+
+  clockViewerAlarmTime.hour = 23;
+  clockViewerAlarmTime.min = 58;
+  clockViewerChangeAlarmMinutes(5);
+  if (!clockViewerTestResult("alarm minute forward",
+      clockViewerAlarmTime.hour==0 && clockViewerAlarmTime.min==3)) result = false;
+  clockViewerChangeAlarmMinutes(-5);
+  if (!clockViewerTestResult("alarm minute backward",
+      clockViewerAlarmTime.hour==23 && clockViewerAlarmTime.min==58)) result = false;
+
+#ifdef DEBUG
+  if (result) printF("ClockViewer test:PASS\n");
+  else printF("ClockViewer test:FAIL\n");
+#endif
+  return result;
+}
+
+public void showClockViewer() {
+  clockViewerItem = CLOCK_ITEM_TIME;
+  clockViewerEdit = CLOCK_EDIT_NONE;
+  clockViewerField = CLOCK_FIELD_HOUR;
+  clockViewerLoadState();
+  clockViewerAlarmPreviouslySet = isAlarmSet();
+  clockViewerAlarmRinging = false;
+  clockViewerDraw();
+
+  int refresh = 0;
+  for (;;) {
+    key_step();
+
+    if (clockViewerEdit==CLOCK_EDIT_TIME) {
+      if (key_pressed(KEY_UP)!=0) {
+        if (clockViewerField==CLOCK_FIELD_HOUR) {
+          clockViewerEditTime.hour =
+              clockViewerWrap(clockViewerEditTime.hour, 1, 24);
+        } else {
+          clockViewerEditTime.min =
+              clockViewerWrap(clockViewerEditTime.min, 1, 60);
+        }
+        clockViewerDraw();
+      } else if (key_pressed(KEY_DOWN)!=0) {
+        if (clockViewerField==CLOCK_FIELD_HOUR) {
+          clockViewerEditTime.hour =
+              clockViewerWrap(clockViewerEditTime.hour, -1, 24);
+        } else {
+          clockViewerEditTime.min =
+              clockViewerWrap(clockViewerEditTime.min, -1, 60);
+        }
+        clockViewerDraw();
+      } else if (key_pressed(KEY_LEFT)!=0 ||
+                 key_pressed(KEY_RIGHT)!=0) {
+        if (clockViewerField==CLOCK_FIELD_HOUR) {
+          clockViewerField = CLOCK_FIELD_MIN;
+        } else {
+          clockViewerField = CLOCK_FIELD_HOUR;
+        }
+        clockViewerDraw();
+      } else if (key_pressed(KEY_ENTER)!=0) {
+        clockViewerEditTime.sec = 0;
+        if (setTime(clockViewerEditTime)) {
+#ifdef DEBUG
+          printF("ClockViewer setTime=%d/%d/%d %d:%d\n",
+                 clockViewerEditTime.year,
+                 clockViewerEditTime.mon,
+                 clockViewerEditTime.day,
+                 clockViewerEditTime.hour,
+                 clockViewerEditTime.min);
+#endif
+        }
+        clockViewerEdit = CLOCK_EDIT_NONE;
+        clockViewerLoadState();
+        clockViewerDraw();
+      } else if (key_pressed(KEY_BACK)!=0) {
+        clockViewerEdit = CLOCK_EDIT_NONE;
+        clockViewerLoadState();
+        clockViewerDraw();
+      }
+    } else {
+      if (key_pressed(KEY_UP)!=0) {
+        clockViewerItem = clockViewerNextItem(clockViewerItem, -1);
+        clockViewerDraw();
+      } else if (key_pressed(KEY_DOWN)!=0) {
+        clockViewerItem = clockViewerNextItem(clockViewerItem, 1);
+        clockViewerDraw();
+      } else if (key_pressed(KEY_LEFT)!=0 &&
+                 clockViewerItem==CLOCK_ITEM_ALARM) {
+        clockViewerChangeAlarmMinutes(-5);
+        clockViewerDraw();
+      } else if (key_pressed(KEY_RIGHT)!=0 &&
+                 clockViewerItem==CLOCK_ITEM_ALARM) {
+        clockViewerChangeAlarmMinutes(5);
+        clockViewerDraw();
+      } else if (key_pressed(KEY_ENTER)!=0) {
+        if (clockViewerItem==CLOCK_ITEM_TIME) {
+          getTime(clockViewerEditTime);
+          clockViewerField = CLOCK_FIELD_HOUR;
+          clockViewerEdit = CLOCK_EDIT_TIME;
+          clockViewerDraw();
+        } else if (clockViewerItem==CLOCK_ITEM_ALARM) {
+          clockViewerToggleAlarm();
+          clockViewerDraw();
+        } else {
+#ifdef DEBUG
+          printF("ClockViewer file chooser:not connected\n");
+#endif
+        }
+      } else if (key_pressed(KEY_BACK)!=0) {
+#ifdef DEBUG
+        printF("ClockViewer back\n");
+#endif
+        return;
+      }
+    }
+
+    refresh = refresh+1;
+    if (clockViewerEdit==CLOCK_EDIT_NONE && refresh>=25) {
+      getTime(clockViewerNow);
+      clockViewerUpdateAlarmState();
+      clockViewerDraw();
+      refresh = 0;
+    }
+    sleep(10);
+  }
+}

@@ -1,0 +1,7 @@
+#ifndef CLOCK_VIEWER_HMM
+#define CLOCK_VIEWER_HMM
+
+public void showClockViewer();
+public boolean testClockViewer();
+
+#endif

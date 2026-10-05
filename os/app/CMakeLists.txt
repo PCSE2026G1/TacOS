@@ -89,6 +89,7 @@ set(CMDIRS
     ../app
     ../clock
     ../audioDecoder
+    ../clockViewer
 )
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     list(APPEND CMCPPFLAGS -DDEBUG)
@@ -110,7 +111,8 @@ add_tac_library(mod_0
     font.cmm
     lcd.cmm
     mp3Proc.cmm
-    ClockTestProc.cmm
+    Key.cmm
+    ClockViewerTestProc.cmm
     appUtil.cmm
     mp3Files.cmm
 )
