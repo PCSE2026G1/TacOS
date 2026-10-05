@@ -2,6 +2,7 @@
 #include <util.hmm>
 #include <AudioDecoder.hmm>
 #include <mp3Proc.hmm>
+#include <file_chooser.hmm>
 
 #include "Key.hmm"
 #include "lcd.hmm"
@@ -19,6 +20,8 @@ int playerSelectedItem = 0;
 boolean playerPlaying = false;
 boolean playerRepeat = false;
 boolean playerShuffle = false;
+boolean externalFileSelected = false;
+char[] externalFile = array(256);
 
 #define PLAYER_ITEM_TIME 0
 #define PLAYER_ITEM_VOLUME 1
@@ -80,6 +83,24 @@ boolean printMP3PlayerTest(char[] name, boolean result) {
   return result;
 }
 
+void putShortPath(char[] path) {
+  int length = strLen(path);
+  int start = 0;
+  for (int i=0; i<length; i=i+1) {
+    if (path[i]=='/') start = i+1;
+  }
+  int end = length;
+  if (length-start>=4 && path[length-4]=='.' &&
+      (path[length-3]=='M' || path[length-3]=='m') &&
+      (path[length-2]=='P' || path[length-2]=='p') &&
+      path[length-1]=='3') end = length-4;
+  int printed = 0;
+  for (int i=start; i<end && printed<16; i=i+1) {
+    putCh(path[i]);
+    printed = printed+1;
+  }
+}
+
 void drawListScreen() {
   int count = countMP3Files();
   cls();
@@ -97,7 +118,7 @@ void drawListScreen() {
     }
   }
 
-  locateXY(0, 7); putStr("ENT:Play BACK:Home");
+  locateXY(0, 7); putStr("LT:File ENT:Play");
 }
 
 void drawPlayerBar(int value, int maximum) {
@@ -119,7 +140,9 @@ void drawPlayerMark(int item) {
 void drawInfoScreen() {
   cls();
   locateXY(0, 0);
-  if (playingFile>0 && mp3FilesGetName(playingFile)!=null) {
+  if (externalFileSelected && playingFile==0) {
+    putShortPath(externalFile);
+  } else if (playingFile>0 && mp3FilesGetName(playingFile)!=null) {
     putStr(mp3FilesGetName(playingFile));
   } else {
     putStr("Not playing");
@@ -148,6 +171,7 @@ void playSelectedFile() {
   if (path==null) return;
 
   if (MP3playfile(path, true)) {
+    externalFileSelected = false;
     playingFile = selectedFile;
     playerPlaying = true;
     playerMode = MP3PLAYER_INFO;
@@ -160,6 +184,43 @@ void playSelectedFile() {
     printF("MP3Player play failed=%s\n", path);
 #endif
   }
+}
+
+void playExternalFile() {
+  if (externalFile[0]=='\0') return;
+  if (MP3playfile(externalFile, true)) {
+    playingFile = 0;
+    playerPlaying = true;
+    externalFileSelected = true;
+    playerMode = MP3PLAYER_INFO;
+    drawInfoScreen();
+#ifdef DEBUG
+    printF("MP3Player chooser play=%s\n", externalFile);
+#endif
+  } else {
+#ifdef DEBUG
+    printF("MP3Player chooser play failed=%s\n", externalFile);
+#endif
+  }
+}
+
+void chooseExternalFile() {
+  if (playerPlaying) {
+    MP3stop();
+    playerPlaying = false;
+  }
+  externalFile[0] = '\0';
+  chooser(externalFile);
+#ifdef DEBUG
+  if (externalFile[0]!='\0') printF("MP3Player chosen=%s\n", externalFile);
+  else printF("MP3Player chooser returned no file\n");
+#endif
+  if (externalFile[0]=='\0') {
+    drawListScreen();
+    return;
+  }
+  playExternalFile();
+  if (!playerPlaying) drawListScreen();
 }
 
 void stopPlayerFile() {
@@ -178,7 +239,8 @@ void togglePlayerFile() {
   }
 
   if (playingFile>0) selectedFile = playingFile;
-  playSelectedFile();
+  if (externalFileSelected) playExternalFile();
+  else playSelectedFile();
 }
 
 void changePlayerItem(int difference) {
@@ -266,6 +328,8 @@ void handleNaturalFinish(int count) {
     else printF("MP3Player shuffle=%d->%d\n", finishedFile, nextFile);
 #endif
     playSelectedFile();
+  } else if (playerRepeat && externalFileSelected) {
+    playExternalFile();
   } else {
     drawInfoScreen();
     updateInfoValues();
@@ -391,6 +455,8 @@ public void showMP3Player(int type) {
 #endif
       } else if (key_pressed(KEY_ENTER)!=0 && count>0) {
         playSelectedFile();
+      } else if (key_pressed(KEY_LEFT)!=0) {
+        chooseExternalFile();
       } else if (key_pressed(KEY_RIGHT)!=0) {
         playerMode = MP3PLAYER_INFO;
         drawInfoScreen();
