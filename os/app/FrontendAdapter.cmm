@@ -2,10 +2,20 @@
 #include <util.hmm>
 #include <MP3Player.hmm>
 #include <ClockViewer.hmm>
+#include <Clock.hmm>
+#include <file_chooser.hmm>
 
 #include "Key.hmm"
 #include "lcd.hmm"
 #include "FrontendAdapter.hmm"
+
+char[] frontendFile = array(256);
+
+void frontendWaitKeyRelease() {
+  while ((~in(0x18)&0x3f)!=0) sleep(10);
+  key_step();
+  key_step();
+}
 
 void frontendUnavailable(char[] title) {
   cls();
@@ -21,17 +31,47 @@ void frontendUnavailable(char[] title) {
 }
 
 public void mp3_show_files() {
-  showMP3Player(MP3PLAYER_LIST);
+  for (;;) {
+    frontendFile[0] = '\0';
+    chooserMp3(frontendFile);
+    if (frontendFile[0]=='\0') return;
+    frontendWaitKeyRelease();
+    showMP3PlayerFile(frontendFile);
+    frontendWaitKeyRelease();
+  }
 }
 
 public void mp3_show_playlists() {
-  frontendUnavailable("# PLAYLISTS #");
+  playlist_show();
 }
 
 public void mp3_show_history() {
   frontendUnavailable("# HISTORY #");
 }
 
+public void mp3_show_now_playing() {
+  if (isMP3PlayerPlaying()) showCurrentMP3Player();
+  else frontendUnavailable("# NOW PLAYING #");
+}
+
 public void clock_show() {
   showClockViewer();
+}
+
+public void mp3_play_path(char[] path) {
+  if (path==null || path[0]=='\0') return;
+  frontendWaitKeyRelease();
+  showMP3PlayerFile(path);
+}
+
+public void mp3_play_playlist(char[][] paths, int count, int selected) {
+  frontendWaitKeyRelease();
+  showMP3PlayerPlaylist(paths, count, selected);
+}
+
+public void frontendAlarmTick() {
+  if (isAlarmRinging() && !isClockViewerActive()) {
+    mp3PlayerInterrupted();
+    showClockViewer();
+  }
 }

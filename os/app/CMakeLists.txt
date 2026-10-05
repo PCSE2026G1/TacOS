@@ -179,16 +179,11 @@ add_tac_library(mod_0
     src/debug.s
     src/debug.c
     src/lcd.c
-    src/random.s
     src/key.c
     src/cmmdef.s
-    src/algorithm.c
     src/tac_string.c
-    src/stacksafe.s
     src/home.s
     src/home.c
-    src/minesweeper0.s
-    src/minesweeper.c
-    src/mahjong.c
     src/playlist.c
+    src/playlist_frontend.c
 )

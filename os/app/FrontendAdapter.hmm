@@ -5,6 +5,11 @@ public void home_show();
 public void mp3_show_files();
 public void mp3_show_playlists();
 public void mp3_show_history();
+public void mp3_show_now_playing();
 public void clock_show();
+public void mp3_play_path(char[] path);
+public void mp3_play_playlist(char[][] paths, int count, int selected);
+public void playlist_show();
+public void frontendAlarmTick();
 
 #endif

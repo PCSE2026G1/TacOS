@@ -10,6 +10,8 @@ public void getAlarm(Time time);
 public boolean setAlarm(Time time);
 public boolean isAlarmSet();
 public void clearAlarm();
+public boolean isAlarmRinging();
+public void stopAlarm();
 
 public char[] getFile();
 public boolean setFile(char[] file);

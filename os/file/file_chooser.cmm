@@ -59,10 +59,10 @@ int count_file(char[] dir_name)
 }
 
 
-public void chooser(char[] filename)
+void chooserFrom(char[] filename, char[] initial_path)
 {
     char[] current_path = malloc(256);
-    strCpy(current_path, "/");
+    strCpy(current_path, initial_path);
     filename[0] = '\0';
 
     while (true) {
@@ -116,7 +116,7 @@ public void chooser(char[] filename)
             free(arr);
             free(types);
 
-            if (strCmp(current_path, "/") == 0) {
+            if (strCmp(current_path, initial_path) == 0) {
                 free(current_path);
                 reset_screen();
                 return;
@@ -175,4 +175,14 @@ public void chooser(char[] filename)
         free(arr);
         free(types);
     }
+}
+
+public void chooser(char[] filename)
+{
+    chooserFrom(filename, "/");
+}
+
+public void chooserMp3(char[] filename)
+{
+    chooserFrom(filename, "/MP3");
 }

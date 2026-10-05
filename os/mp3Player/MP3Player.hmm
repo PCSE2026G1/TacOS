@@ -5,6 +5,12 @@
 #define MP3PLAYER_INFO 1
 
 public void showMP3Player(int type);
+public void showMP3PlayerFile(char[] file);
+public void showMP3PlayerPlaylist(char[][] files, int count, int selected);
+public void showCurrentMP3Player();
+public boolean isMP3PlayerPlaying();
+public void mp3PlayerTick();
+public void mp3PlayerInterrupted();
 public boolean testMP3Player();
 
 #endif

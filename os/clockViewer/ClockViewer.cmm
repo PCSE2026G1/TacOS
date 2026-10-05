@@ -15,9 +15,14 @@
 
 #define CLOCK_EDIT_NONE 0
 #define CLOCK_EDIT_TIME 1
+#define CLOCK_EDIT_ALARM 2
 
-#define CLOCK_FIELD_HOUR 0
-#define CLOCK_FIELD_MIN 1
+#define CLOCK_FIELD_YEAR 0
+#define CLOCK_FIELD_MON 1
+#define CLOCK_FIELD_DAY 2
+#define CLOCK_FIELD_HOUR 3
+#define CLOCK_FIELD_MIN 4
+#define CLOCK_FIELD_COUNT 5
 
 int clockViewerItem = CLOCK_ITEM_TIME;
 int clockViewerEdit = CLOCK_EDIT_NONE;
@@ -31,6 +36,7 @@ Time clockViewerTestAlarm = {1900, 1, 1, 0, 0, 0};
 Time clockViewerTestLeap = {2028, 2, 28, 0, 0, 0};
 boolean clockViewerAlarmPreviouslySet = false;
 boolean clockViewerAlarmRinging = false;
+boolean clockViewerActive = false;
 char[] clockViewerChosenFile = array(256);
 
 int clockViewerNextItem(int item, int difference) {
@@ -114,6 +120,31 @@ void clockViewerChangeAlarmMinutes(int difference) {
   clockViewerAlarmTime.sec = 0;
 }
 
+void clockViewerClampDay(Time time) {
+  int maximum = clockViewerDaysInMonth(time.year, time.mon);
+  if (time.day>maximum) time.day = maximum;
+}
+
+void clockViewerChangeField(Time time, int field, int difference) {
+  if (field==CLOCK_FIELD_YEAR) {
+    time.year = time.year+difference;
+    if (time.year<0) time.year = 9999;
+    if (time.year>9999) time.year = 0;
+    clockViewerClampDay(time);
+  } else if (field==CLOCK_FIELD_MON) {
+    time.mon = clockViewerWrap(time.mon-1, difference, 12)+1;
+    clockViewerClampDay(time);
+  } else if (field==CLOCK_FIELD_DAY) {
+    time.day = clockViewerWrap(time.day-1, difference,
+                              clockViewerDaysInMonth(time.year, time.mon))+1;
+  } else if (field==CLOCK_FIELD_HOUR) {
+    time.hour = clockViewerWrap(time.hour, difference, 24);
+  } else {
+    time.min = clockViewerWrap(time.min, difference, 60);
+  }
+  time.sec = 0;
+}
+
 void clockViewerPutTwoDigits(int value) {
   putCh(chr(ord('0')+(value/10)%10));
   putCh(chr(ord('0')+value%10));
@@ -174,6 +205,21 @@ void clockViewerDraw() {
   else displayTime = clockViewerNow;
 
   cls();
+  if (clockViewerEdit==CLOCK_EDIT_ALARM) {
+    locateXY(0, 0); putStr("# ALARM EDIT #");
+    locateXY(0, 2); clockViewerPutDate(clockViewerAlarmTime);
+    locateXY(0, 3); clockViewerPutTime(clockViewerAlarmTime);
+    locateXY(0, 5); putStr("UP/DN change");
+    locateXY(0, 6); putStr("LT/RT field");
+    locateXY(0, 7); putStr("ENT:Set BACK");
+    locateXY(0, 1);
+    if (clockViewerField==CLOCK_FIELD_YEAR) putStr("Field:YEAR");
+    else if (clockViewerField==CLOCK_FIELD_MON) putStr("Field:MONTH");
+    else if (clockViewerField==CLOCK_FIELD_DAY) putStr("Field:DAY");
+    else if (clockViewerField==CLOCK_FIELD_HOUR) putStr("Field:HOUR");
+    else putStr("Field:MINUTE");
+    return;
+  }
   locateXY(0, 0); putStr("# CLOCK #");
   locateXY(0, 1); clockViewerPutDate(displayTime);
 
@@ -227,16 +273,13 @@ void clockViewerLoadState() {
 }
 
 void clockViewerUpdateAlarmState() {
-  boolean alarmNowSet = isAlarmSet();
-  if (clockViewerAlarmPreviouslySet && !alarmNowSet) {
-    clockViewerAlarmRinging = true;
-  }
-  clockViewerAlarmPreviouslySet = alarmNowSet;
+  clockViewerAlarmRinging = isAlarmRinging();
+  clockViewerAlarmPreviouslySet = isAlarmSet();
 }
 
 void clockViewerToggleAlarm() {
   if (clockViewerAlarmRinging) {
-    MP3stop();
+    stopAlarm();
     clockViewerAlarmRinging = false;
 #ifdef DEBUG
     printF("ClockViewer alarm stopped\n");
@@ -278,7 +321,7 @@ void clockViewerToggleAlarm() {
 
 void clockViewerChooseFile() {
   clockViewerChosenFile[0] = '\0';
-  chooser(clockViewerChosenFile);
+  chooserMp3(clockViewerChosenFile);
 
   if (clockViewerChosenFile[0]=='\0') {
 #ifdef DEBUG
@@ -379,19 +422,47 @@ public boolean testClockViewer() {
 }
 
 public void showClockViewer() {
+  clockViewerActive = true;
   clockViewerItem = CLOCK_ITEM_TIME;
   clockViewerEdit = CLOCK_EDIT_NONE;
   clockViewerField = CLOCK_FIELD_HOUR;
   clockViewerLoadState();
   clockViewerAlarmPreviouslySet = isAlarmSet();
-  clockViewerAlarmRinging = false;
+  clockViewerAlarmRinging = isAlarmRinging();
+  if (clockViewerAlarmRinging) clockViewerItem = CLOCK_ITEM_ALARM;
   clockViewerDraw();
 
   int refresh = 0;
   for (;;) {
     key_step();
 
-    if (clockViewerEdit==CLOCK_EDIT_TIME) {
+    if (clockViewerEdit==CLOCK_EDIT_ALARM) {
+      if (key_pressed(KEY_UP)!=0) {
+        clockViewerChangeField(clockViewerAlarmTime, clockViewerField, 1);
+        clockViewerDraw();
+      } else if (key_pressed(KEY_DOWN)!=0) {
+        clockViewerChangeField(clockViewerAlarmTime, clockViewerField, -1);
+        clockViewerDraw();
+      } else if (key_pressed(KEY_LEFT)!=0) {
+        clockViewerField = clockViewerField-1;
+        if (clockViewerField<0) clockViewerField = CLOCK_FIELD_COUNT-1;
+        clockViewerDraw();
+      } else if (key_pressed(KEY_RIGHT)!=0) {
+        clockViewerField = clockViewerField+1;
+        if (clockViewerField>=CLOCK_FIELD_COUNT) clockViewerField = 0;
+        clockViewerDraw();
+      } else if (key_pressed(KEY_ENTER)!=0) {
+        if (setAlarm(clockViewerAlarmTime)) {
+          clockViewerAlarmPreviouslySet = true;
+          clockViewerEdit = CLOCK_EDIT_NONE;
+          clockViewerDraw();
+        }
+      } else if (key_pressed(KEY_BACK)!=0) {
+        clockViewerEdit = CLOCK_EDIT_NONE;
+        clockViewerLoadState();
+        clockViewerDraw();
+      }
+    } else if (clockViewerEdit==CLOCK_EDIT_TIME) {
       if (key_pressed(KEY_UP)!=0) {
         if (clockViewerField==CLOCK_FIELD_HOUR) {
           clockViewerEditTime.hour =
@@ -460,7 +531,13 @@ public void showClockViewer() {
           clockViewerEdit = CLOCK_EDIT_TIME;
           clockViewerDraw();
         } else if (clockViewerItem==CLOCK_ITEM_ALARM) {
-          clockViewerToggleAlarm();
+          if (isAlarmSet() || clockViewerAlarmRinging) {
+            clockViewerToggleAlarm();
+          } else {
+            clockViewerAlarmTime.sec = 0;
+            clockViewerField = CLOCK_FIELD_YEAR;
+            clockViewerEdit = CLOCK_EDIT_ALARM;
+          }
           clockViewerDraw();
         } else {
           clockViewerChooseFile();
@@ -469,6 +546,7 @@ public void showClockViewer() {
 #ifdef DEBUG
         printF("ClockViewer back\n");
 #endif
+        clockViewerActive = false;
         return;
       }
     }
@@ -482,4 +560,8 @@ public void showClockViewer() {
     }
     sleep(10);
   }
+}
+
+public boolean isClockViewerActive() {
+  return clockViewerActive;
 }
