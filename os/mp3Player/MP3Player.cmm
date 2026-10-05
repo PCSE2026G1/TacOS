@@ -29,6 +29,7 @@ int playerPlaylistCount = 0;
 int playerPlaylistIndex = 0;
 boolean playerSourcePlaylist = false;
 boolean playerInfoVisible = false;
+int playerSem = -1;
 
 #define PLAYER_ITEM_TIME 0
 #define PLAYER_ITEM_VOLUME 1
@@ -549,9 +550,26 @@ public void mp3PlayerTick() {
   handleNaturalFinish(countMP3Files());
 }
 
+public void MP3PlayerInit() {
+  playerSem = newSem(1);
+  if (playerSem<0) panic("MP3PlayerInit newSem");
+}
+
+/* Home／FileChooser／ClockViewer表示中でも自然終了を検出する． */
+public void mp3PlayerMonitorMain() {
+  for (;;) {
+    semP(playerSem);
+    mp3PlayerTick();
+    semV(playerSem);
+    sleep(100);
+  }
+}
+
 public void mp3PlayerInterrupted() {
+  semP(playerSem);
   playerPlaying = false;
   playerInfoVisible = false;
+  semV(playerSem);
 }
 
 public void showCurrentMP3Player() {

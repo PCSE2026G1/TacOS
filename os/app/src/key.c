@@ -14,7 +14,6 @@ extern unsigned int key_read(VOID)
 
 extern void key_step(VOID)
 {
-    mp3PlayerTick();
     frontendAlarmTick();
     unsigned int key = key_read();
     key1 = key2;

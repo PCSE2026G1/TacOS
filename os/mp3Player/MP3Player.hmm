@@ -10,6 +10,8 @@ public void showMP3PlayerPlaylist(char[][] files, int count, int selected);
 public void showCurrentMP3Player();
 public boolean isMP3PlayerPlaying();
 public void mp3PlayerTick();
+public void MP3PlayerInit();
+public void mp3PlayerMonitorMain();
 public void mp3PlayerInterrupted();
 public boolean testMP3Player();
 

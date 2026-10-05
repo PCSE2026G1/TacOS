@@ -103,7 +103,9 @@ public boolean MP3playfile(char[] file, boolean save) {
   spiResetMp3();
   spiWriteMp3Reg(SCI_VOL, (volumeValue<<8)|volumeValue);
   if (!play(file)) return false;
-  if (save && !addPlayHistory(file)) return false;
+  /* 再生履歴の保存失敗は，デコーダの再生失敗ではない．
+     音声が再生中なのに上位層が停止中と判定しないよう分離する． */
+  if (save) addPlayHistory(file);
   return true;
 }
 

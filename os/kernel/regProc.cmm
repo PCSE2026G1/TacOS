@@ -36,6 +36,7 @@
 #include <init.hmm>
 #else
 #include <Clock.hmm>
+#include <MP3Player.hmm>
 #include <shellProc.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>
@@ -62,8 +63,10 @@ int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザ�
   MakePCB(shellMem);                                  // APPのPCBとスタック領域
   MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
   MakePCB(ClockMem);
+  MakePCB(mp3PlayerMonitorMem);
 int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
 int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
+int[] mp3PlayerMonitorFds = array(P_FILE_MAX);      // 履歴保存にFSを使う
 #endif
 
 // ----------------------------------------------------------------------------
@@ -105,8 +108,14 @@ public void regProc()  {
   spiInit();
 
   ClockInit();
+  MP3PlayerInit();
   newProc(addrof(clockMain),0,0,EI|KERN, _AtoA(ClockMem), null);
   schProc(_AtoA(ClockMem));
+
+  /* Repeat／Shuffleの自然終了検出を画面のキー処理から分離する． */
+  newProc(addrof(mp3PlayerMonitorMain),4,0,EI|KERN,
+          _AtoA(mp3PlayerMonitorMem),mp3PlayerMonitorFds);
+  schProc(_AtoA(mp3PlayerMonitorMem));
 
 
 #endif

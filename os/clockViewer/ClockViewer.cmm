@@ -320,6 +320,8 @@ void clockViewerToggleAlarm() {
 }
 
 void clockViewerChooseFile() {
+  boolean alarmWasSet;
+
   clockViewerChosenFile[0] = '\0';
   chooserMp3(clockViewerChosenFile);
 
@@ -331,12 +333,20 @@ void clockViewerChooseFile() {
     return;
   }
 
-  if (isAlarmSet()) {
-    clearAlarm();
-    clockViewerAlarmPreviouslySet = false;
-  }
+  /* setAlarm() はその時点の currentFile を alarmFile へ複製する．
+     ファイル変更時にAlarmをOFFにせず，元の時刻のまま
+     新しいファイルを使うよう再設定する． */
+  alarmWasSet = isAlarmSet();
+  if (alarmWasSet) getAlarm(clockViewerAlarmTime);
 
   if (setFile(clockViewerChosenFile)) {
+    if (alarmWasSet) {
+      if (setAlarm(clockViewerAlarmTime)) {
+        clockViewerAlarmPreviouslySet = true;
+      } else {
+        clockViewerAlarmPreviouslySet = false;
+      }
+    }
 #ifdef DEBUG
     printF("ClockViewer file=%s\n", clockViewerChosenFile);
 #endif
