@@ -17,3 +17,5 @@
 *.dSYM
 *.lock
 *.bin
+*.png
+*.svg
