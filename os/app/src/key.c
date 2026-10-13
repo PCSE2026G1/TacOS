@@ -14,7 +14,15 @@ extern unsigned int key_read(VOID)
 
 extern void key_step(VOID)
 {
-    frontendAlarmTick();
+    if (COND(frontendAlarmTick()))
+    {
+        while (COND(key_read()))
+            sleep(10);
+        key0 = 0;
+        key1 = 0;
+        key2 = 0;
+        return;
+    }
     unsigned int key = key_read();
     key1 = key2;
     key2 = (key2 | (key & key0)) & (key | key0);

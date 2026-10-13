@@ -1,5 +1,6 @@
 #include <kernel.hmm>
 #include <util.hmm>
+#include <FrontendAdapter.hmm>
 #include "list.hmm"
 #include "lcd.h"
 
@@ -17,6 +18,11 @@ int sw0 = 0x00;
 int sw1 = 0x00;
 
 int readSw() {
+  if (frontendAlarmTick()) {
+    while ((~in(0x18) & SWS) != 0) sleep(10);
+    sw0 = 0x00;
+    sw1 = 0x00;
+  }
   int sw = ~in(0x18) & SWS;
   int swd = sw & sw0;
   int sw2 = (sw1 ^ swd) & swd;

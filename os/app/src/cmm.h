@@ -35,6 +35,6 @@ extern void chooserMp3(char PTR(filename));
 extern void mp3_play_path(char PTR(path));
 extern void mp3_play_playlist(char PTR(PTR(paths)), unsigned int count, unsigned int selected);
 extern void mp3PlayerTick(VOID);
-extern void frontendAlarmTick(VOID);
+extern int frontendAlarmTick(VOID);
 
 #endif

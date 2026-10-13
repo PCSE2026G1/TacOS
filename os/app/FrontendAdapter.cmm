@@ -69,9 +69,11 @@ public void mp3_play_playlist(char[][] paths, int count, int selected) {
   showMP3PlayerPlaylist(paths, count, selected);
 }
 
-public void frontendAlarmTick() {
+public boolean frontendAlarmTick() {
   if (isAlarmRinging() && !isClockViewerActive()) {
     mp3PlayerInterrupted();
     showClockViewer();
+    return true;
   }
+  return false;
 }

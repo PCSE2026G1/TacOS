@@ -4,8 +4,10 @@
 #include <AudioDecoder.hmm>
 #include <mp3Proc.hmm>
 #include <file_chooser.hmm>
+#include <fs.hmm>
 
 #include "Key.hmm"
+#include "appUtil.hmm"
 #include "lcd.hmm"
 #include "mp3Files.hmm"
 #include "MP3Player.hmm"
@@ -30,6 +32,7 @@ int playerPlaylistIndex = 0;
 boolean playerSourcePlaylist = false;
 boolean playerInfoVisible = false;
 int playerSem = -1;
+char[] shuffleCandidate = array(16);
 
 #define PLAYER_ITEM_TIME 0
 #define PLAYER_ITEM_VOLUME 1
@@ -101,6 +104,46 @@ boolean printMP3PlayerTest(char[] name, boolean result) {
   else printF("[NG] %s\n", name);
 #endif
   return result;
+}
+
+boolean isCurrentExternalName(char[] name) {
+  int start = 0;
+  for (int i=0; externalFile[i]!='\0'; i=i+1) {
+    if (externalFile[i]=='/') start = i+1;
+  }
+  int i = 0;
+  while (name[i]!='\0' && externalFile[start+i]!='\0') {
+    if (name[i]!=externalFile[start+i]) return false;
+    i = i+1;
+  }
+  return name[i]=='\0' && externalFile[start+i]=='\0';
+}
+
+/* FileChooserの起点である/MP3直下の全MP3から次曲を選ぶ． */
+boolean selectExternalShuffleFile() {
+  shuffleCandidate[0] = '\0';
+  int fd = open("/MP3", READ_MODE);
+  if (fd<0) return false;
+  int count = 0;
+  for (;;) {
+    Dir entry = readDir(fd, "MP3");
+    if (entry==null) break;
+    if (isCurrentExternalName(entry.name)) continue;
+    count = count+1;
+    if (((rand()&0x7fff)%count)==0)
+      strCpy(shuffleCandidate, entry.name);
+  }
+  close(fd);
+
+  if (shuffleCandidate[0]=='\0') return true;
+  strCpy(externalFile, "/MP3/");
+  int i = 0;
+  while (shuffleCandidate[i]!='\0') {
+    externalFile[5+i] = shuffleCandidate[i];
+    i = i+1;
+  }
+  externalFile[5+i] = '\0';
+  return true;
 }
 
 void putShortPath(char[] path) {
@@ -393,6 +436,19 @@ void handleNaturalFinish(int count) {
     return;
   }
 
+  if (externalFileSelected) {
+    playerPlaying = false;
+    if (playerRepeat) {
+      playExternalFile();
+    } else if (playerShuffle && selectExternalShuffleFile()) {
+      playExternalFile();
+    } else if (playerInfoVisible) {
+      drawInfoScreen();
+      updateInfoValues();
+    }
+    return;
+  }
+
   int finishedFile = playingFile;
   int nextFile = selectionAfterFinish(finishedFile, count,
                                       playerRepeat, playerShuffle, rand());
@@ -409,8 +465,6 @@ void handleNaturalFinish(int count) {
     else printF("MP3Player shuffle=%d->%d\n", finishedFile, nextFile);
 #endif
     playSelectedFile();
-  } else if (playerRepeat && externalFileSelected) {
-    playExternalFile();
   } else {
     if (playerInfoVisible) {
       drawInfoScreen();
@@ -462,6 +516,13 @@ public boolean testMP3Player() {
                          clampSpeed(100-1)==99)) result = false;
   if (!printMP3PlayerTest("playback initially stopped",
                          getPlaybackState()==MP3_STATE_STOPPED)) result = false;
+
+  strCpy(externalFile, "/MP3/MAOU_31.MP3");
+  if (!printMP3PlayerTest("external source name match",
+                         isCurrentExternalName("MAOU_31.MP3"))) result = false;
+  if (!printMP3PlayerTest("external source name differs",
+                         !isCurrentExternalName("MAOU_32.MP3"))) result = false;
+  externalFile[0] = '\0';
 
   if (!printMP3PlayerTest("finish without mode stops",
                          selectionAfterFinish(2, 5, false, false, 3)==0)) {
