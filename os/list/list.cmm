@@ -16,12 +16,35 @@
 
 int sw0 = 0x00;
 int sw1 = 0x00;
+int listNeedsRedraw = 0;
+
+void drawListFrame(char[] title) {
+    for (int y = 0; y < 8; y = y + 1) {
+        lcd_draw_string(0, y, "                ");
+    }
+    if (title[0]=='/') {
+        lcd_draw_string(0, 0, "# FILES #");
+    } else {
+        lcd_draw_string(0, 0, "# ");
+        lcd_draw_string(2, 0, title);
+        int titleLength = strLen(title);
+        if (titleLength<12) lcd_draw_string(titleLength+2, 0, " #");
+    }
+    if (title[0]=='/' && title[1]=='\0') {
+        lcd_draw_string(0, 7, "ENT:OK BACK:EXIT");
+    } else if (title[0]=='/') {
+        lcd_draw_string(0, 7, "ENT:OK BACK:UP");
+    } else {
+        lcd_draw_string(0, 7, "ENT:OK");
+    }
+}
 
 int readSw() {
   if (frontendAlarmTick()) {
     while ((~in(0x18) & SWS) != 0) sleep(10);
     sw0 = 0x00;
     sw1 = 0x00;
+    listNeedsRedraw = 1;
   }
   int sw = ~in(0x18) & SWS;
   int swd = sw & sw0;
@@ -59,25 +82,9 @@ public int select(char[] title, char[][] fnames, int size) {
     sw0 = 0x00;
     sw1 = 0x00;
 
-    // 呼び出し元の画面を残さず，FileChooserの画面へ完全に切り替える．
-    for (int y = 0; y < 8; y = y + 1) {
-        lcd_draw_string(0, y, "                ");
-    }
-    if (title[0]=='/') {
-        lcd_draw_string(0, 0, "# FILES #");
-    } else {
-        lcd_draw_string(0, 0, "# ");
-        lcd_draw_string(2, 0, title);
-        int titleLength = strLen(title);
-        if (titleLength<12) lcd_draw_string(titleLength+2, 0, " #");
-    }
-    if (title[0]=='/' && title[1]=='\0') {
-        lcd_draw_string(0, 7, "ENT:OK BACK:EXIT");
-    } else if (title[0]=='/') {
-        lcd_draw_string(0, 7, "ENT:OK BACK:UP");
-    } else {
-        lcd_draw_string(0, 7, "ENT:OK");
-    }
+    // 呼び出し元の画面を残さず，一覧画面へ完全に切り替える．
+    drawListFrame(title);
+    listNeedsRedraw = 0;
 
     int loop = fileCount;
     if(size < fileCount){
@@ -90,6 +97,12 @@ public int select(char[] title, char[][] fnames, int size) {
     for (;;) {
         int sw = readSw();
         int num = swToNum(sw);
+
+        // Alarm画面から戻ったときは，見出しと下端も含めて復元する．
+        if (listNeedsRedraw!=0) {
+            drawListFrame(title);
+            listNeedsRedraw = 0;
+        }
 
         if (num == 5) { // 下
             if (cursor < size - 1) {
