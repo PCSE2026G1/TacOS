@@ -46,7 +46,7 @@ public void mp3_show_playlists() {
 }
 
 public void mp3_show_history() {
-  frontendUnavailable("# HISTORY #");
+  history_show();
 }
 
 public void mp3_show_now_playing() {

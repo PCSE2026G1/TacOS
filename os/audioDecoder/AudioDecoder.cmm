@@ -2,6 +2,7 @@
 #include <mp3Proc.hmm>
 #include <spi.hmm>
 #include <util.hmm>
+#include <PlayHistory.hmm>
 
 #include "AudioDecoder.hmm"
 
@@ -12,8 +13,6 @@
 
 #define MIN_SAMPLE_RATE_HALF  4000
 #define MAX_SAMPLE_RATE_HALF 24000
-#define PLAY_HISTORY_FILE "/playHistory.txt"
-
 // SCI_AUDATA holds the sample rate in bits 15:1 and the channel flag in bit 0.
 int baseAudioData = 0;
 int speedValue = 100;

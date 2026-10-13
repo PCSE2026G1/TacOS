@@ -60,7 +60,7 @@ function(add_tac_library lib_name)
         elseif("${ext}" STREQUAL "c")
             add_custom_command(
                 OUTPUT ${obj}
-                COMMAND cc -E -MD -MF "${basename}.d" -DCMMDEF ${CMCPPFLAGS} ${src} -o "${basename}.cmm"
+                COMMAND cc -E -P -MD -MF "${basename}.d" -DCMMDEF ${CMCPPFLAGS} ${src} -o "${basename}.cmm"
                 COMMAND cm2e -c ${CMFLAGS} "${basename}.cmm"
                 DEPENDS ${src}
                 DEPFILE "${basename}.d"
@@ -190,6 +190,7 @@ add_tac_library(mod_0
     src/mahjong.c
     src/home.s
     src/home.c
+    src/history.c
     src/playlist.c
     src/playlist_frontend.c
 )
