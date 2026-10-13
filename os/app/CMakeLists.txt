@@ -50,8 +50,7 @@ function(add_tac_library lib_name)
         elseif("${ext}" STREQUAL "cmm")
             add_custom_command(
                 OUTPUT ${obj}
-                COMMAND cp ${src} "${basename}.c"
-                COMMAND cc -E -MD -MF "${basename}.d" ${CMCPPFLAGS} "${basename}.c" -o "${basename}.cmm"
+                COMMAND cc -x c -E -MD -MF "${basename}.d" ${CMCPPFLAGS} ${src} -o "${basename}.cmm"
                 COMMAND cm2e -c ${CMFLAGS} "${basename}.cmm"
                 DEPENDS ${src}
                 DEPFILE "${basename}.d"
