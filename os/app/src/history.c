@@ -4,31 +4,11 @@
 #include "cmm.h"
 #include "key.h"
 #include "lcd.h"
+#include "playlist.h"
 #include <PlayHistory.hmm>
 
-#define HISTORY_BUFFER_SIZE 256
 #define HISTORY_NAME_SIZE 11
 #define HISTORY_VISIBLE 5
-
-#ifndef CMMDEF
-typedef struct history_item_t history_item_t;
-typedef struct history_t history_t;
-#endif
-
-struct history_item_t
-{
-    SPTR(history_item_t, prev);
-    SPTR(history_item_t, next);
-    char PTR(path);
-    unsigned int count;
-};
-
-struct history_t
-{
-    SPTR(history_item_t, front);
-    SPTR(history_item_t, back);
-    unsigned int count;
-};
 
 static int history_same_path(const char PTR(l), const char PTR(r))
 {
@@ -44,173 +24,53 @@ static int history_same_path(const char PTR(l), const char PTR(r))
     return 0;
 }
 
-static void history_move_front(SPTR(history_t, history), SPTR(history_item_t, item))
+/* PLAYHIST.TXT の同じ曲について，最後に記録された要素だけを表示する． */
+static int history_has_later(SPTR(playlist_item_t, item))
 {
-    if (history == NULL || item == NULL || MEMBER(history, front) == item)
-        return;
-
-    if (MEMBER(item, prev) != NULL)
-        MEMBER(MEMBER(item, prev), next) = MEMBER(item, next);
-    if (MEMBER(item, next) != NULL)
-        MEMBER(MEMBER(item, next), prev) = MEMBER(item, prev);
-    else
-        MEMBER(history, back) = MEMBER(item, prev);
-
-    MEMBER(item, prev) = NULL;
-    MEMBER(item, next) = MEMBER(history, front);
-    MEMBER(MEMBER(history, front), prev) = item;
-    MEMBER(history, front) = item;
-}
-
-static unsigned int history_record(SPTR(history_t, history), const char PTR(path))
-{
-    if (history == NULL || path == NULL || path[0] == '\0')
-        return 0;
-
-    for (SPTR(history_item_t, item) = MEMBER(history, front);
-            item != NULL; item = MEMBER(item, next))
-    {
-        if (COND(history_same_path(MEMBER(item, path), path)))
-        {
-            if (cmpu(MEMBER(item, count), 0xffff) < 0)
-                INC(MEMBER(item, count));
-            history_move_front(history, item);
+    const char PTR(path) = MEMBER(item, name);
+    for (item = MEMBER(item, next); item != NULL; item = MEMBER(item, next))
+        if (COND(history_same_path(path, MEMBER(item, name))))
             return 1;
-        }
-    }
-
-    unsigned int length = strLen(path);
-    SPTR(history_item_t, item) = malloc(sizeof(history_item_t) + length + 1);
-    if (item == NULL)
-        return 0;
-
-    MEMBER(item, prev) = NULL;
-    MEMBER(item, next) = MEMBER(history, front);
-    MEMBER(item, path) = addp(item, sizeof(history_item_t));
-    MEMBER(item, count) = 1;
-    for (unsigned int i = 0; i <= length; INC(i))
-        MEMBER(item, path)[i] = path[i];
-
-    if (MEMBER(history, front) != NULL)
-        MEMBER(MEMBER(history, front), prev) = item;
-    else
-        MEMBER(history, back) = item;
-    MEMBER(history, front) = item;
-    INC(MEMBER(history, count));
-    return 1;
+    return 0;
 }
 
-static SPTR(history_t, history_alloc(VOID))
+static unsigned int history_unique_count(SPTR(playlist_t, history))
 {
-    SPTR(history_t, history) = malloc(sizeof(history_t));
-    if (history == NULL)
-        return NULL;
-    MEMBER(history, front) = NULL;
-    MEMBER(history, back) = NULL;
-    MEMBER(history, count) = 0;
-    return history;
+    unsigned int count = 0;
+    for (SPTR(playlist_item_t, item) = MEMBER(history, back);
+            item != NULL; item = MEMBER(item, prev))
+        if (!COND(history_has_later(item)))
+            INC(count);
+    return count;
 }
 
-static void history_free(SPTR(history_t, history))
+/* 新しく再生された曲から順に index 番目を返す． */
+static SPTR(playlist_item_t, history_item_at(
+        SPTR(playlist_t, history), unsigned int index))
 {
-    if (history == NULL)
-        return;
-    SPTR(history_item_t, item) = MEMBER(history, front);
-    while (item != NULL)
+    unsigned int current = 0;
+    for (SPTR(playlist_item_t, item) = MEMBER(history, back);
+            item != NULL; item = MEMBER(item, prev))
     {
-        SPTR(history_item_t, next) = MEMBER(item, next);
-        free(item);
-        item = next;
+        if (!COND(history_has_later(item)))
+        {
+            if (current == index)
+                return item;
+            INC(current);
+        }
     }
-    free(history);
+    return NULL;
 }
 
-static int history_read(SPTR(history_t, history))
+static unsigned int history_play_count(
+        SPTR(playlist_t, history), const char PTR(path))
 {
-    char PTR(buf) = malloc(HISTORY_BUFFER_SIZE);
-    if (buf == NULL)
-        return -1;
-
-    int fd = open(PLAY_HISTORY_FILE, 0);
-    if (fd < 0)
-    {
-        free(buf);
-        return 0;
-    }
-
-    int used = 0;
-    int ret = 0;
-    for (;;)
-    {
-        if (used >= HISTORY_BUFFER_SIZE - 1)
-        {
-            ret = -1;
-            break;
-        }
-
-        int len = read(fd, addp(buf, used), HISTORY_BUFFER_SIZE - used - 1);
-        if (len < 0)
-        {
-            ret = -1;
-            break;
-        }
-        ADDA(used, len);
-        buf[used] = '\0';
-
-        int start = 0;
-        int i = 0;
-        for (; i < used; INC(i))
-        {
-            if (buf[i] == '\n')
-            {
-                int end = i;
-                if (end > start && buf[end - 1] == '\r')
-                    DEC(end);
-                buf[end] = '\0';
-                if (end > start && !COND(history_record(history, addp(buf, start))))
-                {
-                    ret = -1;
-                    break;
-                }
-                start = i + 1;
-            }
-        }
-        if (ret < 0)
-            break;
-
-        if (start > 0)
-        {
-            for (int j = start; j < used; INC(j))
-                buf[j - start] = buf[j];
-            SUBA(used, start);
-        }
-
-        if (len == 0)
-        {
-            if (used > 0)
-            {
-                if (buf[used - 1] == '\r')
-                    DEC(used);
-                buf[used] = '\0';
-                if (used > 0 && !COND(history_record(history, buf)))
-                    ret = -1;
-            }
-            break;
-        }
-    }
-
-    if (close(fd) < 0)
-        ret = -1;
-    free(buf);
-    return ret;
-}
-
-static SPTR(history_item_t, history_item_at(SPTR(history_t, history), unsigned int index))
-{
-    SPTR(history_item_t, item) = MEMBER(history, front);
-    for (unsigned int i = 0; i < index && item != NULL; INC(i))
-        item = MEMBER(item, next);
-    return item;
+    unsigned int count = 0;
+    for (SPTR(playlist_item_t, item) = MEMBER(history, front);
+            item != NULL; item = MEMBER(item, next))
+        if (COND(history_same_path(path, MEMBER(item, name))))
+            INC(count);
+    return count;
 }
 
 static void history_clear(VOID)
@@ -248,12 +108,12 @@ static void history_short_name(const char PTR(path), char PTR(dest))
     dest[length] = '\0';
 }
 
-static void history_draw(SPTR(history_t, history), unsigned int cursor)
+static void history_draw(SPTR(playlist_t, history), unsigned int cursor)
 {
     history_clear();
     lcd_draw_string(0, 0, "# HISTORY #");
 
-    unsigned int count = MEMBER(history, count);
+    unsigned int count = history_unique_count(history);
     if (count == 0)
     {
         lcd_draw_string(1, 2, "(empty)");
@@ -264,24 +124,28 @@ static void history_draw(SPTR(history_t, history), unsigned int cursor)
         if (cursor >= HISTORY_VISIBLE)
             start = cursor - HISTORY_VISIBLE + 1;
 
-        SPTR(history_item_t, item) = history_item_at(history, start);
         char PTR(name) = malloc(HISTORY_NAME_SIZE);
         if (name != NULL)
         {
-            for (unsigned int row = 0; row < HISTORY_VISIBLE && item != NULL; INC(row))
+            for (unsigned int row = 0;
+                    row < HISTORY_VISIBLE && start + row < count; INC(row))
             {
+                SPTR(playlist_item_t, item) = history_item_at(history, start + row);
+                if (item == NULL)
+                    break;
                 if (start + row == cursor)
                     lcd_draw_string(0, row + 1, "*");
                 else
                     lcd_draw_string(0, row + 1, " ");
-                history_short_name(MEMBER(item, path), name);
+
+                const char PTR(path) = MEMBER(item, name);
+                history_short_name(path, name);
                 lcd_draw_string(1, row + 1, name);
                 lcd_draw_string(12, row + 1, "x");
-                unsigned int shown = MEMBER(item, count);
+                unsigned int shown = history_play_count(history, path);
                 if (shown > 999)
                     shown = 999;
                 lcd_draw_dec(13, row + 1, shown, 3);
-                item = MEMBER(item, next);
             }
             free(name);
         }
@@ -301,27 +165,12 @@ static void history_wait_release(VOID)
 
 extern void history_show(VOID)
 {
-    SPTR(history_t, history) = history_alloc();
+    SPTR(playlist_t, history) = pl_alloc();
     if (history == NULL)
         return;
 
-    if (history_read(history) < 0)
-    {
-        history_clear();
-        lcd_draw_string(0, 0, "# HISTORY #");
-        lcd_draw_string(1, 3, "Read error");
-        lcd_draw_string(0, 7, "BACK:Home");
-        history_wait_release();
-        for (;;)
-        {
-            key_step();
-            if (COND(key_pressed(KEY_BACK)) || COND(key_pressed(KEY_ENTER)))
-                break;
-            sleep(10);
-        }
-        history_free(history);
-        return;
-    }
+    /* 履歴ファイルがまだ無い場合は，空の履歴として表示する． */
+    pl_read(history, PLAY_HISTORY_FILE);
 
     unsigned int cursor = 0;
     history_wait_release();
@@ -330,7 +179,7 @@ extern void history_show(VOID)
     while (COND(1))
     {
         key_step();
-        unsigned int count = MEMBER(history, count);
+        unsigned int count = history_unique_count(history);
         if (COND(key_pressed(KEY_UP)) && cursor > 0)
         {
             DEC(cursor);
@@ -343,21 +192,21 @@ extern void history_show(VOID)
         }
         else if (COND(key_pressed(KEY_ENTER)) && count > 0)
         {
-            SPTR(history_item_t, item) = history_item_at(history, cursor);
+            SPTR(playlist_item_t, item) = history_item_at(history, cursor);
             if (item != NULL)
             {
-                char PTR(path) = MEMBER(item, path);
+                const char PTR(path) = MEMBER(item, name);
                 history_wait_release();
                 mp3_play_path(path);
                 history_wait_release();
-                history_record(history, path);
+                pl_add(history, path);
                 cursor = 0;
                 history_draw(history, cursor);
             }
         }
         else if (COND(key_pressed(KEY_BACK)))
         {
-            history_free(history);
+            pl_free(history);
             return;
         }
         sleep(10);
