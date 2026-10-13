@@ -420,13 +420,15 @@ void handleNaturalFinish(int count) {
 }
 
 public boolean testMP3Player() {
+#ifndef DEBUG
+  /* 単体テスト本体を統合版へ含めず，FileChooser用の動的メモリを確保する． */
+  return true;
+#else
   int count = countMP3Files();
   boolean result = true;
 
-#ifdef DEBUG
   printF("--- MP3Player test ---\n");
   printF("file count=%d\n", count);
-#endif
 
   if (!printMP3PlayerTest("file count range",
                          count>=0 && count<=MAX_MP3_FILES)) result = false;
@@ -482,7 +484,6 @@ public boolean testMP3Player() {
                          selectionAfterFinish(1, 1, false, true, 9)==1)) {
     result = false;
   }
-#ifdef DEBUG
   if (!printMP3PlayerTest("playlist repeat keeps current",
       playlistSelectionAfterFinish(2, 4, true, false, 0)==2)) result = false;
   if (!printMP3PlayerTest("playlist shuffle changes current",
@@ -494,7 +495,6 @@ public boolean testMP3Player() {
       playlistSelectionAfterFinish(2, 4, false, false, 0)==-1)) result = false;
   if (!printMP3PlayerTest("playlist single shuffle",
       playlistSelectionAfterFinish(0, 1, false, true, 9)==0)) result = false;
-#endif
 
   if (count>0) {
     boolean filesValid = true;
@@ -511,11 +511,10 @@ public boolean testMP3Player() {
   }
   if (!printMP3PlayerTest("out of range file",
                           mp3FilesGetName(MAX_MP3_FILES+1)==null)) result = false;
-#ifdef DEBUG
   if (result) printF("MP3Player test:PASS\n");
   else printF("MP3Player test:FAIL\n");
-#endif
   return result;
+#endif
 }
 
 public void showMP3PlayerFile(char[] file) {

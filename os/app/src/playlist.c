@@ -125,7 +125,10 @@ extern int pl_read(SPTR(playlist_t, playlist), const char PTR(name))
                 if (end > start && buf[end - 1] == '\r')
                     DEC(end);
                 buf[end] = '\0';
-                if (end > start && pl_add(playlist, addp(buf, start)) == 0)
+                /* Playlist／Historyには絶対パスだけを取り込む．
+                   空ファイルの終端文字などを1件として表示しない． */
+                if (end > start && buf[start] == '/' &&
+                        pl_add(playlist, addp(buf, start)) == 0)
                 {
                     ret = -1;
                     break;
@@ -147,7 +150,7 @@ extern int pl_read(SPTR(playlist_t, playlist), const char PTR(name))
                 if (buf[used - 1] == '\r')
                     DEC(used);
                 buf[used] = '\0';
-                if (used > 0 && pl_add(playlist, buf) == 0)
+                if (used > 0 && buf[0] == '/' && pl_add(playlist, buf) == 0)
                     ret = -1;
             }
             break;
