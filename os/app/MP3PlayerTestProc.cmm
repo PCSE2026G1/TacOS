@@ -22,7 +22,8 @@ public void shellMain() {
   printF("Info: SW1/SW5 item SW2/SW3 value\n");
   printF("Volume and speed change by 1\n");
   printF("Repeat and Shuffle are exclusive\n");
-  printF("Wait for natural end to verify modes\n");
+  printF("Return to LIST and wait for natural end\n");
+  printF("Repeat/Shuffle must continue off INFO\n");
 #endif
 
   showMP3Player(MP3PLAYER_LIST);
