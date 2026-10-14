@@ -1,0 +1,7 @@
+#ifndef PLAYLIST_HMM
+#define PLAYLIST_HMM
+
+/* playlist.c のCMMから使用する公開インタフェース． */
+public int pl_append(char[] playlist, char[] name);
+
+#endif

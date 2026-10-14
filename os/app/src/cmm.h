@@ -8,6 +8,7 @@ extern void panic(const char PTR(msg), ...);
 
 extern unsigned int in(unsigned int p);
 extern void out(unsigned int p, unsigned int v);
+extern int setPri(int level);
 
 extern void PTR(malloc(unsigned int size));
 extern void free(void PTR(ptr));

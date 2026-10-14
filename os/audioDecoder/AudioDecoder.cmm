@@ -1,8 +1,10 @@
 #include <fs.hmm>
+#include <kernel.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>
 #include <util.hmm>
 #include <PlayHistory.hmm>
+#include <playlist.hmm>
 
 #include "AudioDecoder.hmm"
 
@@ -17,6 +19,27 @@
 int baseAudioData = 0;
 int speedValue = 100;
 int volumeValue = 40;
+int audioDecoderSem = -1;
+char[] playbackFile = array(256);
+
+public void AudioDecoderInit() {
+  audioDecoderSem = newSem(1);
+  if (audioDecoderSem<0) panic("AudioDecoderInit newSem");
+  playbackFile[0] = '\0';
+}
+
+boolean copyPlaybackFile(char[] file) {
+  if (file==null) return false;
+
+  int i = 0;
+  while (file[i]!='\0') {
+    if (i>=255) return false;
+    playbackFile[i] = file[i];
+    i = i+1;
+  }
+  playbackFile[i] = '\0';
+  return i>0;
+}
 
 boolean captureBaseAudioData() {
   int audioData = spiReadMp3Reg(SCI_AUDATA);
@@ -26,21 +49,9 @@ boolean captureBaseAudioData() {
 }
 
 boolean addPlayHistory(char[] file) {
-  int fd = open(PLAY_HISTORY_FILE, APPEND_MODE);
-  if (fd<0) {
-    if (creat(PLAY_HISTORY_FILE)<0) return false;
-    fd = open(PLAY_HISTORY_FILE, APPEND_MODE);
-    if (fd<0) return false;
-  }
-
-  int length = strLen(file);
-  if (write(fd, file, length)!=length || write(fd, "\n", 1)!=1) {
-    close(fd);
-    return false;
-  }
-
-  close(fd);
-  return true;
+  /* TacOSのAPPEND_MODEで破損ファイルが生成される場合があるため，
+     Playlistで実機確認済みの読込み＋全体書込み方式を使う． */
+  return pl_append(PLAY_HISTORY_FILE, file)==0;
 }
 
 // volume is the VS1011E attenuation value (0: maximum, 254: silence).
@@ -95,21 +106,42 @@ public int getPosition() {
 }
 
 public boolean MP3playfile(char[] file, boolean save) {
-  if (file==null) return false;
+  if (audioDecoderSem<0) return false;
 
+  semP(audioDecoderSem);
+  if (!copyPlaybackFile(file)) {
+    semV(audioDecoderSem);
+    return false;
+  }
+
+  /* 転送中のデータを止めてからVS1011Eをリセットする．
+     resetと旧データ転送が同時にSPIを使用しないようにする． */
+  stop();
   baseAudioData = 0;
   speedValue = 100;
   spiResetMp3();
   spiWriteMp3Reg(SCI_VOL, (volumeValue<<8)|volumeValue);
-  if (!play(file)) return false;
+  boolean started = play(playbackFile);
+  if (!started) {
+    semV(audioDecoderSem);
+    return false;
+  }
   /* 再生履歴の保存失敗は，デコーダの再生失敗ではない．
      音声が再生中なのに上位層が停止中と判定しないよう分離する． */
-  if (save) addPlayHistory(file);
+  if (save && !addPlayHistory(playbackFile)) {
+#ifdef DEBUG
+    printF("play history save failed:%s\n", playbackFile);
+#endif
+  }
+  semV(audioDecoderSem);
   return true;
 }
 
 public void MP3stop() {
+  if (audioDecoderSem<0) return;
+  semP(audioDecoderSem);
   stop();
+  semV(audioDecoderSem);
 }
 
 // VS1011E exposes elapsed decode time, but not the total duration of an MP3.

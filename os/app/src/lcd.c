@@ -9,8 +9,10 @@ static int display = 1;
 
 extern void lcd_draw_string(unsigned int x, unsigned int y, const char PTR(str))
 {
+    int old_level = setPri(0x0040);
     locateXY(x, y);
     putStr(str);
+    setPri(old_level);
 }
 
 extern void lcd_draw_dec(unsigned int x, unsigned int y, int num, unsigned int width)

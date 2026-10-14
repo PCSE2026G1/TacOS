@@ -2,7 +2,9 @@
 #define CLOCK_VIEWER_HMM
 
 public void showClockViewer();
+#ifdef CLOCKVIEWER_UNIT_TEST
 public boolean testClockViewer();
+#endif
 public boolean isClockViewerActive();
 
 #endif

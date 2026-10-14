@@ -98,6 +98,7 @@ int playlistSelectionAfterFinish(int current, int count, boolean repeat,
   return next;
 }
 
+#ifdef MP3PLAYER_UNIT_TEST
 boolean printMP3PlayerTest(char[] name, boolean result) {
 #ifdef DEBUG
   if (result) printF("[OK] %s\n", name);
@@ -105,6 +106,7 @@ boolean printMP3PlayerTest(char[] name, boolean result) {
 #endif
   return result;
 }
+#endif
 
 boolean isCurrentExternalName(char[] name) {
   int start = 0;
@@ -157,8 +159,9 @@ void putShortPath(char[] path) {
       (path[length-3]=='M' || path[length-3]=='m') &&
       (path[length-2]=='P' || path[length-2]=='p') &&
       path[length-1]=='3') end = length-4;
+  /* 先頭の "F:" または "P:" を含めて16文字に収める． */
   int printed = 0;
-  for (int i=start; i<end && printed<16; i=i+1) {
+  for (int i=start; i<end && printed<14; i=i+1) {
     putCh(path[i]);
     printed = printed+1;
   }
@@ -261,7 +264,8 @@ boolean copyPlaylistContext(char[][] files, int count) {
 }
 
 void updateInfoValues() {
-  locateXY(7, 1); putDec(getPosition(), 5); putStr(" sec ");
+  /* 7列目 + 5桁 + 4文字でLCDの16文字幅に収める． */
+  locateXY(7, 1); putDec(getPosition(), 5); putStr(" sec");
   locateXY(9, 3); putDec(getVolume(), 3); putStr("   ");
   locateXY(8, 4); putDec(getSpeed(), 3); putCh('%'); putStr("  ");
 }
@@ -473,11 +477,8 @@ void handleNaturalFinish(int count) {
   }
 }
 
+#ifdef MP3PLAYER_UNIT_TEST
 public boolean testMP3Player() {
-#ifndef DEBUG
-  /* 単体テスト本体を統合版へ含めず，FileChooser用の動的メモリを確保する． */
-  return true;
-#else
   int count = countMP3Files();
   boolean result = true;
 
@@ -575,8 +576,8 @@ public boolean testMP3Player() {
   if (result) printF("MP3Player test:PASS\n");
   else printF("MP3Player test:FAIL\n");
   return result;
-#endif
 }
+#endif
 
 public void showMP3PlayerFile(char[] file) {
   if (file==null || file[0]=='\0') return;
@@ -671,12 +672,18 @@ public void showMP3Player(int type) {
 #endif
       } else if (key_pressed(KEY_ENTER)!=0 && count>0) {
         playSelectedFile();
+        if (playerMode==MP3PLAYER_INFO) {
+          playerInfoVisible = true;
+          drawInfoScreen();
+          updateInfoValues();
+        }
       } else if (key_pressed(KEY_LEFT)!=0) {
         chooseExternalFile();
       } else if (key_pressed(KEY_RIGHT)!=0) {
         playerMode = MP3PLAYER_INFO;
         playerInfoVisible = true;
         drawInfoScreen();
+        updateInfoValues();
 #ifdef DEBUG
         printF("MP3Player screen=INFO\n");
 #endif

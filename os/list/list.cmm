@@ -17,6 +17,39 @@
 int sw0 = 0x00;
 int sw1 = 0x00;
 int listNeedsRedraw = 0;
+char[] listDisplayName = array(15);
+
+/* 先頭の選択記号と2列目の空白を除くと14文字分だけ表示する．
+   長いファイル名がLCDの16文字幅を越えて，次の描画位置へ
+   影響することを防ぐ． */
+void drawListName(int y, char[] value) {
+    int length = 0;
+    if (value!=null) {
+        while (length<14 && value[length]!='\0') {
+            listDisplayName[length] = value[length];
+            length = length + 1;
+        }
+    }
+    listDisplayName[length] = '\0';
+    lcd_draw_string(2, y, listDisplayName);
+}
+
+void drawListItems(char[][] fnames, int size, int cursor, int start) {
+    int loop = fileCount;
+    if (size<fileCount) loop = size;
+
+    /* 表示件数が減ったときに前の行を残さない． */
+    for (int i=0; i<fileCount; i=i+1) {
+        lcd_draw_string(0, i+1, "                ");
+    }
+
+    for (int i=0; i<loop; i=i+1) {
+        int index = start+i;
+        if (index==cursor) lcd_draw_string(0, i+1, "*");
+        else lcd_draw_string(0, i+1, " ");
+        drawListName(i+1, fnames[index]);
+    }
+}
 
 void drawListFrame(char[] title) {
     for (int y = 0; y < 8; y = y + 1) {
@@ -86,13 +119,9 @@ public int select(char[] title, char[][] fnames, int size) {
     drawListFrame(title);
     listNeedsRedraw = 0;
 
-    int loop = fileCount;
-    if(size < fileCount){
-        loop = size;
-    }
-
     int cursor = 0;
     int start = 0;
+    int needsRedraw = 1;
 
     for (;;) {
         int sw = readSw();
@@ -102,11 +131,13 @@ public int select(char[] title, char[][] fnames, int size) {
         if (listNeedsRedraw!=0) {
             drawListFrame(title);
             listNeedsRedraw = 0;
+            needsRedraw = 1;
         }
 
         if (num == 5) { // 下
             if (cursor < size - 1) {
                 cursor = cursor + 1;
+                needsRedraw = 1;
 
                 if (cursor >= start + fileCount) {
                     start = start + 1;
@@ -116,6 +147,7 @@ public int select(char[] title, char[][] fnames, int size) {
         else if (num == 1) { // 上
             if (cursor > 0) {
                 cursor = cursor - 1;
+                needsRedraw = 1;
 
                 if (cursor < start) {
                     start = start - 1;
@@ -136,16 +168,9 @@ public int select(char[] title, char[][] fnames, int size) {
             start = size - fileCount;
         }
 
-        for (int i = 0; i < loop; i=i+1) {
-            lcd_draw_string(0,i+1,"                ");
-            int index = start + i;
-            if (index == cursor) {
-                lcd_draw_string(0, i+1, "*");
-            }
-            else {
-                lcd_draw_string(0, i+1, " ");
-            }
-            lcd_draw_string(2, i+1, fnames[index]);
+        if (needsRedraw!=0) {
+            drawListItems(fnames, size, cursor, start);
+            needsRedraw = 0;
         }
 
         sleep(10);
