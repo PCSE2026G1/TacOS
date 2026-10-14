@@ -36,6 +36,7 @@
 #include <init.hmm>
 #else
 #include <AudioDecoder.hmm>
+#include <Clock.hmm>
 #include <shellProc.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>
@@ -61,6 +62,7 @@ int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザ�
 // 組み込みカーネルの場合
 MakePCB(shellMem);                                  // APPのPCBとスタック領域
 MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
+MakePCB(clockMem);                                  // ClockのPCBとスタック領域
 int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
 int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
 #endif
@@ -103,6 +105,9 @@ public void regProc()  {
   // SPIドライバの初期化（プロセス起動前にすべきことをやる）
   spiInit();
   AudioDecoderInit();
+  ClockInit();
+  newProc(addrof(clockMain),0,0,EI|KERN,_AtoA(clockMem),null);
+  schProc(_AtoA(clockMem));
 
 #endif
 }
