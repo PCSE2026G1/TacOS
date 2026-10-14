@@ -19,6 +19,7 @@
 
 int clockTestSwRaw = 0;
 int clockTestSwStable = 0;
+boolean clockTestLastRinging = false;
 
 Time testNow = {2026, 12, 31, 23, 59, 50};
 Time testAlarm = {2026, 12, 31, 23, 59, 55};
@@ -119,6 +120,7 @@ void runClockApiTest() {
               sameTime(testAlarm, readTime));
   clearAlarm();
   printResult("clearAlarm", !isAlarmSet());
+  printResult("ringing initially false", !isAlarmRinging());
 
   ok = setFile(null) && !setAlarm(testAlarm);
   printResult("alarm without file rejected", ok);
@@ -130,7 +132,8 @@ void runClockApiTest() {
 
   /* 公開APIにTimer解除関数がないため，1秒で発火させて後始末する． */
   sleep(1200);
-  MP3stop();
+  stopAlarm();
+  printResult("stopAlarm clears ringing", !isAlarmRinging());
 
   setFile(alarmPath);
 #ifdef DEBUG
@@ -266,11 +269,21 @@ public void shellMain() {
     else if (num==4) armTimerThenAlarm();
     else if (num==5) armSameTime();
     else if (num==6) {
-      MP3stop();
+      stopAlarm();
       clearAlarm();
+      printResult("stopAlarm", !isAlarmRinging());
 #ifdef DEBUG
-      printF("stopped; Alarm cleared\n");
+        printF("stopped; Alarm cleared\n");
 #endif
+    }
+
+    boolean ringing = isAlarmRinging();
+    if (ringing!=clockTestLastRinging) {
+#ifdef DEBUG
+      if (ringing) printF("alarm ringing=1\n");
+      else printF("alarm ringing=0\n");
+#endif
+      clockTestLastRinging = ringing;
     }
     sleep(10);
   }

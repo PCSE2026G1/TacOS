@@ -16,6 +16,7 @@ char[] timerFile = null;
 
 boolean alarmSet = false;
 boolean timerSet = false;
+boolean alarmRinging = false;
 
 void copyTime(Time dst, Time src) {
     if (dst==null || src==null) panic("copyTime");
@@ -220,6 +221,20 @@ public void clearAlarm() {
     semV(sem);
 }
 
+public boolean isAlarmRinging() {
+    semP(sem);
+    boolean result = alarmRinging;
+    semV(sem);
+    return result;
+}
+
+public void stopAlarm() {
+    semP(sem);
+    alarmRinging = false;
+    semV(sem);
+    MP3stop();
+}
+
 public char[] getFile() {
     semP(sem);
     char[] file = currentFile;
@@ -291,6 +306,7 @@ public void clockMain(){
         sleep(1000);
         boolean alarmDue = false;
         boolean timerDue = false;
+        boolean playIsAlarm = false;
 
         char[] sourceFile = null;
         char[] playFile = null;
@@ -314,10 +330,12 @@ public void clockMain(){
 
         if (alarmDue) {
             sourceFile = alarmFile;
+            playIsAlarm = true;
         }
 
         if (timerDue) {
             sourceFile = timerFile;
+            playIsAlarm = false;
         }
 
         if (sourceFile!=null){
@@ -335,7 +353,13 @@ public void clockMain(){
         semV(sem);
 
         if (playFile!=null) {
-            if (!MP3playfile(playFile, false)) {
+            if (MP3playfile(playFile, false)) {
+                if (playIsAlarm) {
+                    semP(sem);
+                    alarmRinging = true;
+                    semV(sem);
+                }
+            } else {
 #ifdef DEBUG
                 dbgPutStr("alarm play failed\n");
 #endif

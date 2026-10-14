@@ -35,6 +35,7 @@
 #include <pm.hmm>
 #include <init.hmm>
 #else
+#include <AudioDecoder.hmm>
 #include <Clock.hmm>
 #include <MP3Player.hmm>
 #include <shellProc.hmm>
@@ -103,6 +104,7 @@ public void regProc()  {
   // SPIドライバの初期化（プロセス起動前にすべきことをやる）
   spiInit();
 
+  AudioDecoderInit();
   ClockInit();
   MP3PlayerInit();
   newProc(addrof(clockMain),0,0,EI|KERN, _AtoA(ClockMem), null);
