@@ -3,5 +3,6 @@
 
 public void showClockViewer();
 public boolean testClockViewer();
+public boolean isClockViewerActive();
 
 #endif
