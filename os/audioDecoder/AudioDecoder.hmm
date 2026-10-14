@@ -1,6 +1,7 @@
 #ifndef AUDIODECODER_HMM
 #define AUDIODECODER_HMM
 
+public void AudioDecoderInit();
 public boolean setVolume(int volume);
 public int getVolume();
 public boolean setSpeed(int speed);

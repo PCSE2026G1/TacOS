@@ -1,4 +1,5 @@
 #include <fs.hmm>
+#include <kernel.hmm>
 #include <mm.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>
@@ -22,11 +23,32 @@
 int baseAudioData = 0;
 int speedValue = 100;
 int volumeValue = 40;
+int audioDecoderSem = -1;
 char[] playHistoryBuffer = array(PLAY_HISTORY_BUFFER_SIZE);
+char[] playbackFile = array(256);
 
 #ifdef DEBUG
 char[] historyTestActual = array(64);
 #endif
+
+public void AudioDecoderInit() {
+  audioDecoderSem = newSem(1);
+  if (audioDecoderSem<0) panic("AudioDecoderInit newSem");
+  playbackFile[0] = '\0';
+}
+
+boolean copyPlaybackFile(char[] file) {
+  if (file==null) return false;
+
+  int i = 0;
+  while (file[i]!='\0') {
+    if (i>=255) return false;
+    playbackFile[i] = file[i];
+    i = i+1;
+  }
+  playbackFile[i] = '\0';
+  return i>0;
+}
 
 boolean captureBaseAudioData() {
   int audioData = spiReadMp3Reg(SCI_AUDATA);
@@ -161,24 +183,39 @@ public int getPosition() {
 }
 
 public boolean MP3playfile(char[] file, boolean save) {
-  if (file==null) return false;
+  if (audioDecoderSem<0) return false;
+
+  semP(audioDecoderSem);
+  if (!copyPlaybackFile(file)) {
+    semV(audioDecoderSem);
+    return false;
+  }
+
   stop();
 
   baseAudioData = 0;
   speedValue = 100;
   spiResetMp3();
   spiWriteMp3Reg(SCI_VOL, (volumeValue<<8)|volumeValue);
-  if (!play(file)) return false;
-  if (save && !addPlayHistory(file)) {
+  boolean started = play(playbackFile);
+  if (!started) {
+    semV(audioDecoderSem);
+    return false;
+  }
+  if (save && !addPlayHistory(playbackFile)) {
 #ifdef DEBUG
-    printF("play history save failed:%s\n", file);
+    printF("play history save failed:%s\n", playbackFile);
 #endif
   }
+  semV(audioDecoderSem);
   return true;
 }
 
 public void MP3stop() {
+  if (audioDecoderSem<0) return;
+  semP(audioDecoderSem);
   stop();
+  semV(audioDecoderSem);
 }
 
 // VS1011E exposes elapsed decode time, but not the total duration of an MP3.

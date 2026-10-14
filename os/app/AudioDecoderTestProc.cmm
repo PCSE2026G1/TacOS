@@ -60,8 +60,10 @@ void audioTestAutomatic() {
   audioTestResult("volume reject 255", !setVolume(255));
   audioTestResult("volume set 40", setVolume(40));
   audioTestResult("volume get 40", getVolume()==40);
+  audioTestResult("initial speed 100", getSpeed()==100);
   audioTestResult("speed reject zero", !setSpeed(0));
   audioTestResult("null file rejected", !MP3playfile(null, false));
+  audioTestResult("empty file rejected", !MP3playfile("", false));
   audioTestResult("total time unsupported", getTotalTime()==-1);
 
 #ifdef DEBUG
@@ -88,6 +90,9 @@ public void shellMain() {
     if ((sw&SW1)!=0 && file!=null) {
       boolean result = MP3playfile(file, false);
       audioTestResult("MP3playfile save=false", result);
+      if (result) {
+        audioTestResult("speed reset 100", getSpeed()==100);
+      }
       audioTestDraw(file);
     } else if ((sw&SW2)!=0 && file!=null) {
       boolean result = MP3playfile(file, true);
