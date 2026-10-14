@@ -97,6 +97,7 @@ set(CMDIRS
     ../app
     ../audioDecoder
     ../clock
+    ../mp3Player
     src
     build
 )
@@ -165,7 +166,7 @@ add_tac_library(mod_0
     font.cmm
     lcd.cmm
     mp3Proc.cmm
-    ClockTestProc.cmm
+    MP3PlayerTestProc.cmm
     appUtil.cmm
     mp3Files.cmm
 
