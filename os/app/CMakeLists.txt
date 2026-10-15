@@ -97,8 +97,8 @@ set(CMDIRS
     ../app
     ../audioDecoder
     ../clock
-    ../mp3Player
     ../clockViewer
+    ../mp3Player
     src
     build
 )
