@@ -182,6 +182,9 @@ add_tac_library(mod_0
     src/algorithm.c
     src/tac_string.c
     src/stacksafe.s
+    src/mahjong.c
+    src/minesweeper.c
+    src/minesweeper0.s
     src/home.s
     src/home.c
 )

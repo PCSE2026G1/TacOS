@@ -21,5 +21,10 @@ extern void spiWriteLcdCom(const char PTR(buf));
 extern void spiWriteLcdDat(const char PTR(buf), unsigned int len);
 
 extern int select(const char PTR(title), const char PTR(const PTR(fnames)), int size);
+extern int chooserMp3(const char PTR(name));
+
+extern void showCurrentMP3Player(VOID);
+extern void showMP3PlayerFile(const char PTR(file));
+extern int isMP3PlayerPlaying(VOID);
 
 #endif
