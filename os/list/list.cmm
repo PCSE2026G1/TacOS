@@ -10,11 +10,66 @@
 #define SW5 0x02
 #define SW6 0x01
 #define SWS 0x3f
-#define fileCount 7
+#define fileCount 6
 #define TITLE_LENGTH 16
 
 int sw0 = 0x00;
-int sw1 = 0x00;    
+int sw1 = 0x00;
+int listNeedsRedraw = 0;
+char[] listDisplayName = array(15);
+
+/* 先頭の選択記号と2列目の空白を除くと14文字分だけ表示する．
+   長いファイル名がLCDの16文字幅を越えて，次の描画位置へ
+   影響することを防ぐ． */
+void drawListName(int y, char[] value) {
+    int length = 0;
+    if (value!=null) {
+        while (length<14 && value[length]!='\0') {
+            listDisplayName[length] = value[length];
+            length = length + 1;
+        }
+    }
+    listDisplayName[length] = '\0';
+    lcd_draw_string(2, y, listDisplayName);
+}
+
+void drawListItems(char[][] fnames, int size, int cursor, int start) {
+    int loop = fileCount;
+    if (size<fileCount) loop = size;
+
+    /* 表示件数が減ったときに前の行を残さない． */
+    for (int i=0; i<fileCount; i=i+1) {
+        lcd_draw_string(0, i+1, "                ");
+    }
+
+    for (int i=0; i<loop; i=i+1) {
+        int index = start+i;
+        if (index==cursor) lcd_draw_string(0, i+1, "*");
+        else lcd_draw_string(0, i+1, " ");
+        drawListName(i+1, fnames[index]);
+    }
+}
+
+void drawListFrame(char[] title) {
+    for (int y = 0; y < 8; y = y + 1) {
+        lcd_draw_string(0, y, "                ");
+    }
+    if (title[0]=='/') {
+        lcd_draw_string(0, 0, "# FILES #");
+    } else {
+        lcd_draw_string(0, 0, "# ");
+        lcd_draw_string(2, 0, title);
+        int titleLength = strLen(title);
+        if (titleLength<12) lcd_draw_string(titleLength+2, 0, " #");
+    }
+    if (title[0]=='/' && title[1]=='\0') {
+        lcd_draw_string(0, 7, "ENT:OK BACK:EXIT");
+    } else if (title[0]=='/') {
+        lcd_draw_string(0, 7, "ENT:OK BACK:UP");
+    } else {
+        lcd_draw_string(0, 7, "ENT:OK");
+    }
+}
 
 int readSw() {
   int sw = ~in(0x18) & SWS;
@@ -45,26 +100,37 @@ int swToNum(int sw) {
 
 
 public int select(char[] title, char[][] fnames, int size) {
-    for (int y = 0; y < 8; y = y + 1) {
-        lcd_draw_string(0, y, "                ");
-    }
-    lcd_draw_string(0, 0, title);
 
-    int loop = fileCount;
-    if(size < fileCount){
-        loop = size;
+    // 呼び出し元で画面を開いたキー入力を，選択操作として二重に扱わない．
+    while ((~in(0x18) & SWS) != 0) {
+        sleep(10);
     }
+    sw0 = 0x00;
+    sw1 = 0x00;
+
+    // 呼び出し元の画面を残さず，一覧画面へ完全に切り替える．
+    drawListFrame(title);
+    listNeedsRedraw = 0;
 
     int cursor = 0;
     int start = 0;
+    int needsRedraw = 1;
 
     for (;;) {
         int sw = readSw();
         int num = swToNum(sw);
 
+        // Alarm画面から戻ったときは，見出しと下端も含めて復元する．
+        if (listNeedsRedraw!=0) {
+            drawListFrame(title);
+            listNeedsRedraw = 0;
+            needsRedraw = 1;
+        }
+
         if (num == 5) { // 下
             if (cursor < size - 1) {
                 cursor = cursor + 1;
+                needsRedraw = 1;
 
                 if (cursor >= start + fileCount) {
                     start = start + 1;
@@ -74,6 +140,7 @@ public int select(char[] title, char[][] fnames, int size) {
         else if (num == 1) { // 上
             if (cursor > 0) {
                 cursor = cursor - 1;
+                needsRedraw = 1;
 
                 if (cursor < start) {
                     start = start - 1;
@@ -83,6 +150,9 @@ public int select(char[] title, char[][] fnames, int size) {
         else if (num == 6) { // 決定
             break;
         }
+        else if (num == 4) { // 戻る／キャンセル
+            return -1;
+        }
 
         if (size <= fileCount) {
             start = 0;
@@ -90,20 +160,13 @@ public int select(char[] title, char[][] fnames, int size) {
         else if (start + fileCount > size) {
             start = size - fileCount;
         }
-        
-        for (int i = 0; i < loop; i=i+1) {
-            lcd_draw_string(0,i+1,"                ");
-            int index = start + i;
-            if (index == cursor) {
-                lcd_draw_string(0, i+1, "*");
-            }
-            else {
-                lcd_draw_string(0, i+1, " ");
-            }
-            lcd_draw_string(2, i+1, fnames[index]);
+
+        if (needsRedraw!=0) {
+            drawListItems(fnames, size, cursor, start);
+            needsRedraw = 0;
         }
-        
-        sleep(10); 
+
+        sleep(10);
     }
     return cursor;
 }

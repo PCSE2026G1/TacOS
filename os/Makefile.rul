@@ -35,6 +35,9 @@ endif
 # 組み込み版の場合
 ifdef EMBEDDED
 CMFLAGS+=-DEMBEDDED
+ifeq ($(CLOCKVIEWER_UNIT_TEST),1)
+CMFLAGS+=-DCLOCKVIEWER_UNIT_TEST
+endif
 endif
 
 CMFLAGS+=-I/usr/local/cmmInclude
@@ -48,6 +51,7 @@ CMFLAGS+=-I../app               # 組込版にはappがある(ttyも標準では
 CMFLAGS+=-I../app/src           # Cで実装された画面部品の公開ヘッダ
 CMFLAGS+=-I../audioDecoder      # AudioDecoder の公開インタフェース
 CMFLAGS+=-I../clock             # Clock の公開インタフェース
+CMFLAGS+=-I../clockViewer       # ClockViewer の公開インタフェース
 CMFLAGS+=-I../mp3Player         # MP3Player の公開インタフェース
 endif
 
