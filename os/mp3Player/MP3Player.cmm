@@ -268,6 +268,11 @@ void playSelectedFile() {
   char[] path = mp3FilesGetPath(selectedFile);
   if (path==null) return;
 
+  if (playerSourcePlaylist) {
+    playerPlaying = false;
+    clearPlaylistContext();
+  }
+  playerPlaying = false;
   if (MP3playfile(path, true)) {
     externalFileSelected = false;
     playingFile = selectedFile;
@@ -286,6 +291,7 @@ void playSelectedFile() {
 
 void playExternalFile() {
   if (externalFile[0]=='\0') return;
+  playerPlaying = false;
   if (MP3playfile(externalFile, true)) {
     playingFile = 0;
     playerPlaying = true;
@@ -397,9 +403,12 @@ void handleNaturalFinish(int count) {
         playerRepeat, playerShuffle, rand());
     playerPlaying = false;
     if (nextIndex>=0) playPlaylistFile(nextIndex);
-    else if (playerInfoVisible) {
-      drawInfoScreen();
-      updateInfoValues();
+    else {
+      clearPlaylistContext();
+      if (playerInfoVisible) {
+        drawInfoScreen();
+        updateInfoValues();
+      }
     }
     return;
   }
@@ -545,6 +554,7 @@ public boolean testMP3Player() {
 
 public void showMP3PlayerFile(char[] file) {
   if (file==null || file[0]=='\0') return;
+  playerPlaying = false;
   clearPlaylistContext();
   strCpy(externalFile, file);
   playExternalFile();
@@ -557,13 +567,19 @@ public void showMP3PlayerFile(char[] file) {
 
 public void showMP3PlayerPlaylist(char[][] files, int count, int selected) {
   if (files==null || count<=0 || selected<0 || selected>=count) return;
+  playerPlaying = false;
   if (!copyPlaylistContext(files, count)) return;
   playPlaylistFile(selected);
+  if (!playerPlaying) {
+    clearPlaylistContext();
+    return;
+  }
   if (playerPlaying) {
     playerInfoReturnsToCaller = true;
     showMP3Player(MP3PLAYER_INFO);
     playerInfoReturnsToCaller = false;
   }
+  if (!playerPlaying) clearPlaylistContext();
 }
 
 public boolean isMP3PlayerPlaying() {
@@ -592,6 +608,7 @@ public void mp3PlayerInterrupted() {
   semP(playerSem);
   playerPlaying = false;
   playerInfoVisible = false;
+  clearPlaylistContext();
   semV(playerSem);
 }
 
@@ -600,6 +617,7 @@ public void showCurrentMP3Player() {
   playerInfoReturnsToCaller = true;
   showMP3Player(MP3PLAYER_INFO);
   playerInfoReturnsToCaller = false;
+  if (!playerPlaying) clearPlaylistContext();
 }
 
 public void showMP3Player(int type) {
