@@ -2,6 +2,7 @@
 #include <util.hmm>
 #include <Clock.hmm>
 #include <AudioDecoder.hmm>
+#include <file_chooser.hmm>
 
 #include "Key.hmm"
 #include "lcd.hmm"
@@ -36,6 +37,7 @@ Time clockViewerTestLeap = {2028, 2, 28, 0, 0, 0};
 boolean clockViewerAlarmPreviouslySet = false;
 boolean clockViewerAlarmRinging = false;
 boolean clockViewerActive = false;
+char[] clockViewerChosenFile = array(256);
 
 int clockViewerNextItem(int item, int difference) {
   item = item+difference;
@@ -420,6 +422,40 @@ public boolean testClockViewer() {
   return result;
 }
 
+void clockViewerChooseFile() {
+  clockViewerChosenFile[0] = '\0';
+  chooserMp3(clockViewerChosenFile);
+  while ((~in(0x18) & 0x3f)!=0) sleep(10);
+  key_step();
+
+  if (clockViewerChosenFile[0]!='\0') {
+    boolean alarmWasSet = isAlarmSet();
+    if (alarmWasSet) getAlarm(clockViewerAlarmTime);
+    if (setFile(clockViewerChosenFile)) {
+      if (alarmWasSet) {
+        if (!setAlarm(clockViewerAlarmTime)) {
+#ifdef DEBUG
+          printF("ClockViewer alarm file update NG\n");
+#endif
+        }
+      }
+#ifdef DEBUG
+      printF("ClockViewer file=%s\n", clockViewerChosenFile);
+#endif
+    } else {
+#ifdef DEBUG
+      printF("ClockViewer setFile NG\n");
+#endif
+    }
+  } else {
+#ifdef DEBUG
+    printF("ClockViewer file chooser canceled\n");
+#endif
+  }
+  clockViewerLoadState();
+  clockViewerDraw();
+}
+
 public void showClockViewer() {
   clockViewerActive = true;
   clockViewerItem = CLOCK_ITEM_TIME;
@@ -539,9 +575,7 @@ public void showClockViewer() {
           }
           clockViewerDraw();
         } else {
-#ifdef DEBUG
-          printF("ClockViewer file chooser:not connected\n");
-#endif
+          clockViewerChooseFile();
         }
       } else if (key_pressed(KEY_BACK)!=0) {
 #ifdef DEBUG

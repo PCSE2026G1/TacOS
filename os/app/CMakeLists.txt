@@ -181,7 +181,6 @@ add_tac_library(mod_0
     src/algorithm.c
     src/tac_string.c
     src/stacksafe.s
-    src/mahjong.c
-    src/minesweeper0.s
-    src/minesweeper.c
+    # ClockViewer単体テストでは使用しないゲームをリンクしない．
+    # TaCの64 KiBメモリ内に実行時のヒープ・スタック領域を確保する．
 )

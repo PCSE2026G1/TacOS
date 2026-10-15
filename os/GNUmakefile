@@ -45,6 +45,13 @@ MAKEFLAGS=--no-print-directory
 GENSUBDIRS:=util kernel fs sio tty mm pm     # 汎用カーネル
 EMBSUBDIRS:=util kernel fs mm app file list audioDecoder clock mp3Player clockViewer # 組み込みカーネル
 
+# ClockViewer単体テストではMP3Player画面と次曲監視は使用しない．
+# Alarmの音声出力にはaudioDecoderとapp/mp3Procを使用する．
+export CLOCKVIEWER_UNIT_TEST ?= 1
+ifeq ($(CLOCKVIEWER_UNIT_TEST),1)
+EMBSUBDIRS:=$(filter-out mp3Player,$(EMBSUBDIRS))
+endif
+
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 GENOBJS=$(foreach dir, $(GENSUBDIRS), $(dir)/mod.o )
 EMBOBJS=$(foreach dir, $(EMBSUBDIRS), $(dir)/mod_0.o )

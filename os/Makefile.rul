@@ -35,6 +35,9 @@ endif
 # 組み込み版の場合
 ifdef EMBEDDED
 CMFLAGS+=-DEMBEDDED
+ifeq ($(CLOCKVIEWER_UNIT_TEST),1)
+CMFLAGS+=-DCLOCKVIEWER_UNIT_TEST
+endif
 endif
 
 CMFLAGS+=-I/usr/local/cmmInclude
