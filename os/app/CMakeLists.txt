@@ -98,6 +98,7 @@ set(CMDIRS
     ../audioDecoder
     ../clock
     ../clockViewer
+    ../mp3Player
     src
     build
 )
