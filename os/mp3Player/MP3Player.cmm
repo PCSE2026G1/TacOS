@@ -5,7 +5,8 @@
 #include <mp3Proc.hmm>
 #include <fs.hmm>
 
-#include "Key.hmm"
+#define CMMDEF
+#include "key.h"
 #include "appUtil.hmm"
 #include "lcd.hmm"
 #include "mp3Files.hmm"

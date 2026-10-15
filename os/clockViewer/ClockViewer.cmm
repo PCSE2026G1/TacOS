@@ -4,7 +4,8 @@
 #include <AudioDecoder.hmm>
 #include <file_chooser.hmm>
 
-#include "Key.hmm"
+#define CMMDEF
+#include "key.h"
 #include "lcd.hmm"
 #include "ClockViewer.hmm"
 
