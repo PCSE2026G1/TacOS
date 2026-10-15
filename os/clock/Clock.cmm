@@ -216,9 +216,15 @@ public boolean isAlarmSet() {
 }
 
 public void clearAlarm() {
+    char[] oldFile;
+
     semP(sem);
     alarmSet = false;
+    oldFile = alarmFile;
+    alarmFile = null;
     semV(sem);
+
+    if (oldFile!=null) free(oldFile);
 }
 
 public boolean isAlarmRinging() {
@@ -308,6 +314,8 @@ public void clockMain(){
         boolean timerDue = false;
         boolean playIsAlarm = false;
 
+        char[] expiredAlarmFile = null;
+        char[] expiredTimerFile = null;
         char[] sourceFile = null;
         char[] playFile = null;
 
@@ -317,6 +325,8 @@ public void clockMain(){
         if (alarmSet && timesEqual(currentTime, alarmTime)) {
             alarmSet = false;
             alarmDue = true;
+            expiredAlarmFile = alarmFile;
+            alarmFile = null;
         }
 
         if (timerSet) {
@@ -325,16 +335,18 @@ public void clockMain(){
             if (isTimerZero(timerTime)) {
                 timerSet = false;
                 timerDue = true;
+                expiredTimerFile = timerFile;
+                timerFile = null;
             }
         }
 
         if (alarmDue) {
-            sourceFile = alarmFile;
+            sourceFile = expiredAlarmFile;
             playIsAlarm = true;
         }
 
         if (timerDue) {
-            sourceFile = timerFile;
+            sourceFile = expiredTimerFile;
             playIsAlarm = false;
         }
 
@@ -351,6 +363,9 @@ public void clockMain(){
         }
 
         semV(sem);
+
+        if (expiredAlarmFile!=null) free(expiredAlarmFile);
+        if (expiredTimerFile!=null) free(expiredTimerFile);
 
         if (playFile!=null) {
             if (MP3playfile(playFile, false)) {
