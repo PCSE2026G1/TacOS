@@ -2,9 +2,11 @@
 #include "cmmdef.h"
 #include "cmm.h"
 #include "lcd.h"
+#include "stacksafe.h"
 
 extern FPTR(void, PTR(home_functions_ptr));
 extern const char PTR(PTR(home_titles_ptr));
+extern void PTR(sf_buf);
 
 extern void home_show(VOID)
 {
@@ -16,7 +18,7 @@ extern void home_show(VOID)
         if (!COND(isMP3PlayerPlaying()))
             DEC(size);
         int i = select("HOME", home_titles_ptr, size);
-        CALL0(home_functions_ptr[i]);
+        stacksafe(sf_buf, 512, home_functions_ptr[i], 0);
     }
 }
 

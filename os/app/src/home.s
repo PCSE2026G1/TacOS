@@ -23,3 +23,5 @@
 
 _home_functions_ptr dw .functions
 _home_titles_ptr dw .titles
+
+_sf_buf bs 512
