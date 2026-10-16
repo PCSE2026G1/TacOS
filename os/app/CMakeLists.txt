@@ -111,6 +111,7 @@ list(APPEND CMCPPFLAGS ${CMDIRS})
 list(APPEND CMFLAGS ${CMCPPFLAGS})
 
 set(APP_PROCESSES
+    f2home_show
 )
 add_executable(generate_process_s)
 target_sources(generate_process_s
@@ -167,7 +168,6 @@ add_tac_library(mod_0
     font.cmm
     lcd.cmm
     mp3Proc.cmm
-    ClockViewerTestProc.cmm
     appUtil.cmm
     mp3Files.cmm
 
@@ -181,6 +181,9 @@ add_tac_library(mod_0
     src/algorithm.c
     src/tac_string.c
     src/stacksafe.s
-    # ClockViewer単体テストでは使用しないゲームをリンクしない．
-    # TaCの64 KiBメモリ内に実行時のヒープ・スタック領域を確保する．
+    src/mahjong.c
+    src/minesweeper.c
+    src/minesweeper0.s
+    src/home.s
+    src/home.c
 )
