@@ -26,6 +26,7 @@
 - ファイルが存在しない場合の元データ保持
 - 読込み途中の長さ超過時の元データ保持
 - Homeからの起動・復帰と繰り返し実行
+- 空ファイルを読み込むと，既存の曲が消えて空のPlaylistになること
 
 ## テスト構成の注意
 
@@ -34,7 +35,8 @@
 - HomeStackTestAdapter.sは，Home接続テスト用の補助部品．
 - PlaylistFault.sは，原因調査用の診断部品．
 - これらを本番構成へ取り込むかは別途確認が必要．
-- 現在のテスト入口は読込みテストを実行する．
+- 現在のテスト入口は空ファイル読込みテストを実行する．
+- 以前の保存・読込みテストはコードを残し，コンパイル対象から一時的に外している．
 
 ## 未確認・未対応
 
@@ -43,32 +45,56 @@
 - 上書き保存
 - Playlist操作画面
 
-## 現在の読込みテストの実行方法
+## 現在の空ファイル読込みテストの実行方法
 
-前提：必要な共有部品が既にビルドされていること．
-クリーンなcloneからの再現手順は，まだ確認していない．
+### 前提
+
+- 必要な共有部品が既にビルドされていること．
+- クリーンなcloneからの再現手順は，まだ確認していない．
+- tests/PLEMPTY.TXTが0バイトの空ファイルであること．
+
+### ビルド
 
 リポジトリ直下から実行する．
 
 ```sh
 cd os
+wc -c playlist/tests/PLEMPTY.TXT
 make -C playlist/tests test-kernel
+size-- playlist/tests/build/kernel0.o
 ```
 
+### SDカードへのコピー
+
 ビルド成功後，SDカードが /Volumes/TACOS にある状態で実行する．
-コピー先の同名テストファイルは置き換わるので，事前に確認する．
-PLMISS.TXTは存在しないことが前提．
+コピー先の同名ファイルは置き換わるので，事前に確認する．
 
 ```sh
-cp playlist/tests/PLTEST.TXT /Volumes/TACOS/PLTEST.TXT
-cp playlist/tests/PLBAD.TXT /Volumes/TACOS/PLBAD.TXT
+cp playlist/tests/PLEMPTY.TXT /Volumes/TACOS/PLEMPTY.TXT
 cp playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 shasum playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 sync
 diskutil eject /Volumes/TACOS
 ```
 
-TaCを組み込みモードで起動し，HomeのPlaylistsを選択する．
-Playlist load test:PASSと表示され，Homeへ戻ることを確認する．
+### 実機での操作と期待結果
 
-現在の構成は開発途中のテスト用であり，本番への統合完了を意味しない．
+TaCを組み込みモードで起動し，HomeのPlaylistsを選択する．
+
+テストでは，最初に仮の1曲を登録し，空ファイルを読み込む．
+読込みが成功し，曲数が0，frontとbackがnullになることを確認する．
+
+期待するシリアル出力：
+
+```text
+Home: Playlist integration test
+--- Playlist empty-file test ---
+[OK] empty file clears playlist
+```
+
+LCDにPASSが表示され，約3秒後にHomeへ戻ることも確認する．
+
+### 注意
+
+- 現在の構成は開発途中のテスト用であり，本番への統合完了を意味しない．
+- 以前のテスト用ファイルPLTEST.TXTとPLBAD.TXTは，今回は使用しない．

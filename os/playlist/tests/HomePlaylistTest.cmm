@@ -59,6 +59,7 @@ boolean testPlaylistSave() {
 }
 #endif
 
+#if 0
 boolean hasExpectedPlaylistFiles(Playlist playlist) {
     if (getPlaylistCount(playlist)!=2) {
         return false;
@@ -211,6 +212,49 @@ boolean testPlaylistLoad() {
 
     return result;
 }
+#endif
+
+boolean testPlaylistEmpty() {
+    dbgPutStr("--- Playlist empty-file test ---\n");
+
+    Playlist playlist = createPlaylist();
+
+    if (playlist==null) {
+        dbgPutStr("[NG] create playlist\n");
+        return false;
+    }
+
+    boolean result = addPlaylistFile(
+        playlist, "/MP3/DUMMY.MP3"
+    );
+
+    if (result) {
+        result = getPlaylistCount(playlist)==1;
+    }
+
+    if (!result) {
+        dbgPutStr("[NG] prepare nonempty playlist\n");
+        destroyPlaylist(playlist);
+        return false;
+    }
+
+    result = loadPlaylist(playlist, "/PLEMPTY.TXT");
+
+    if (result) {
+        result = getPlaylistCount(playlist)==0 &&
+                 playlist.front==null &&
+                 playlist.back==null;
+    }
+
+    if (result) {
+        dbgPutStr("[OK] empty file clears playlist\n");
+    } else {
+        dbgPutStr("[NG] empty file clears playlist\n");
+    }
+
+    destroyPlaylist(playlist);
+    return result;
+}
 
 public void mp3_show_playlists() {
     for (int y=0; y<8; y=y+1) {
@@ -227,7 +271,8 @@ public void mp3_show_playlists() {
     //     passed = testPlaylistLoad();
     // }
 
-    boolean passed = testPlaylistLoad();
+    // boolean passed = testPlaylistLoad();
+    boolean passed = testPlaylistEmpty();
 
     if (passed) {
         lcd_draw_string(0, 2, "PASS");
