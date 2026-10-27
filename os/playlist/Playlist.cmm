@@ -1,0 +1,681 @@
+#include <kernel.hmm>
+#include <mm.hmm>
+#include <util.hmm>
+#include <fs.hmm>
+#include <errno.hmm>
+
+#include "Playlist.hmm"
+
+public Playlist createPlaylist() {
+	Playlist playlist = malloc(sizeof(Playlist));
+
+	if(playlist==null){
+		return null;
+	}
+
+	playlist.front = null;
+	playlist.back = null;
+	playlist.count = 0;
+
+	return playlist;
+}
+
+public void destroyPlaylist(Playlist playlist) {
+	if(playlist==null) {
+#ifdef DEBUG
+		panic("destroyPlaylist: playlist is null");
+#endif
+		return;
+	}
+
+	PlaylistItem item = playlist.front;
+
+	while(item!=null){
+		PlaylistItem nextItem = item.next;
+
+		if (item.path!=null){
+			free(item.path);
+		} else {
+#ifdef DEBUG
+			panic("destroyPlaylist: item path is null");
+#endif
+		}
+
+		free(item);
+		item = nextItem;
+	}
+
+	free(playlist);
+}
+
+public boolean addPlaylistFile(Playlist playlist, char[] path) {
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A1: entered addPlaylistFile\n");
+#endif
+	if (playlist==null || path==null){
+#ifdef DEBUG
+		panic("addPlaylistFile: null argument");
+#endif
+		return false;
+	}
+
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A1b: before path output\n");
+    dbgPutStr(path);
+    dbgPutStr("\nA1c: before strLen\n");
+#endif
+
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A1d: before constant strLen\n");
+
+    int probeLength = strLen("ABC");
+
+    if (probeLength!=3) {
+        panic("constant strLen returned wrong length");
+    }
+
+    dbgPutStr("A1e: constant strLen passed\n");
+#endif
+
+	int length = strLen(path);
+
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A2: after strLen\n");
+#endif
+
+	if (length<=0 || length>32766) {
+#ifdef DEBUG
+		printF("addPlaylistFile: invalid length=%d\n", length);
+#endif
+		return false;
+	}
+
+	if (playlist.count==32767) {
+#ifdef DEBUG
+		printF("addPlaylistFile: too many items\n");
+#endif
+		return false;
+	}
+
+	PlaylistItem item = malloc(sizeof(PlaylistItem));
+
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A3: after item malloc\n");
+#endif
+
+	if (item==null) {
+#ifdef DEBUG
+		printF("addPlaylistFile: item malloc failed\n");
+#endif
+		return false;
+	}
+
+	item.path = malloc(length+1);
+
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A4: after path malloc\n");
+#endif
+
+	if (item.path==null) {
+#ifdef DEBUG
+		printF("addPlaylistFile: path malloc failed\n");
+#endif
+		free(item);
+		return false;
+	}
+
+	strCpy(item.path, path);
+
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A5: after strCpy\n");
+#endif
+
+	item.prev = playlist.back;
+	item.next = null;
+
+	if (playlist.back == null){
+		playlist.front = item;
+	} else {
+		playlist.back.next = item;
+	}
+
+	playlist.back = item;
+	playlist.count = playlist.count+1;
+
+#ifdef PLAYLIST_UNIT_TEST
+    dbgPutStr("A6: linked item\n");
+#endif
+
+	return true;
+}
+
+public boolean removePlaylistFile(Playlist playlist, int index) {
+	if (playlist==null) {
+#ifdef DEBUG
+		panic("removePlaylistFile: playlist is null");
+#endif
+		return false;
+	}
+
+	if (index<0 || index>=playlist.count) {
+#ifdef DEBUG
+		printF("removePlaylistFile: invalid index=%d count=%d\n", index, playlist.count);
+#endif
+		return false;
+	}
+
+	PlaylistItem item = playlist.front;
+
+	for (int i=0; i<index; i=i+1) {
+		if (item==null){
+			panic("removePlaylistFile: broken list");
+		}
+		item = item.next;
+	}
+
+	if (item==null || item.path==null){
+		panic("removePlaylistFile: broken item");
+	}
+
+	if (item.prev==null) {
+		playlist.front = item.next;
+	} else {
+		item.prev.next = item.next;
+	}
+
+	if (item.next==null) {
+		playlist.back = item.prev;
+	} else {
+		item.next.prev = item.prev;
+	}
+
+	free(item.path);
+	free(item);
+
+	playlist.count = playlist.count-1;
+	return true;
+
+}
+
+public int getPlaylistCount(Playlist playlist) {
+	if (playlist==null) {
+#ifdef DEBUG
+		panic("getPlaylistCount: playlist is null");
+#endif
+		return -1;
+	}
+
+	return playlist.count;
+}
+
+public boolean getPlaylistFile(
+	Playlist playlist,
+	int index,
+	char[] destination,
+	int destinationSize
+) {
+	if (playlist==null || destination==null) {
+#ifdef DEBUG
+		panic("getPlaylistFile: null argument");
+#endif
+		return false;
+	}
+
+	if (destinationSize<=0){
+#ifdef DEBUG
+		printF("getPlaylistFile: invalid size=%d\n", destinationSize);
+#endif
+		return false;
+	}
+
+	if (index<0 || index>=playlist.count) {
+#ifdef DEBUG
+		printF("getPlaylistFile: invalid index=%d count=%d\n", index, playlist.count);
+#endif
+		return false;
+	}
+
+	PlaylistItem item = playlist.front;
+
+	for (int i=0; i<index; i=i+1) {
+		if (item==null) {
+			panic("getPlaylistFile: broken list");
+		}
+		item = item.next;
+	}
+
+	if (item==null || item.path==null) {
+		panic("getPlaylistFile: broke item");
+	}
+
+	int length = strLen(item.path);
+
+	if (length>=destinationSize) {
+#ifdef DEBUG
+		printF("getPlaylistFile: buffer too small\n");
+#endif
+		return false;
+	}
+
+	strCpy(destination, item.path);
+
+	return true;
+}
+
+public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
+	if (playlist==null || playlistFile==null) {
+		dbgPutStr("savePlaylist: null argument\n");
+		return false;
+	}
+
+	if (playlistFile[0]=='\0') {
+		dbgPutStr("savePlaylist: empty file name\n");
+		return false;
+	}
+
+	PlaylistItem item = playlist.front;
+
+	while (item!=null) {
+		if (item.path==null || item.path[0]=='\0') {
+			panic("savePlaylist: broken item");
+		}
+
+		if (strLen(item.path)>255) {
+			dbgPutStr("savePlaylist: path too long\n");
+			return false;
+		}
+
+		for (int i=0; item.path[i]!='\0'; i=i+1) {
+			if (item.path[i]=='\n' || item.path[i]=='\r') {
+				dbgPutStr("savePlaylist: newline in path\n");
+				return false;
+			}
+		}
+
+		item = item.next;
+	}
+
+	int createResult = creat(playlistFile);
+
+
+	if (createResult<0) {
+		if (createResult==EEXIST) {
+			dbgPutStr("savePlaylist: file already exists\n");
+		} else if (createResult==ENAME) {
+			dbgPutStr("savePlaylist: invalid file name\n");
+		} else if (createResult==EPATH) {
+			dbgPutStr("savePlaylist: invalid directory path\n");
+		} else if (createResult==ENOSPC) {
+			dbgPutStr("savePlaylist: no free space or directory entry\n");
+		} else {
+			dbgPutStr("savePlaylist: other create error\n");
+		}
+
+		return false;
+	}
+
+	int fd = open(playlistFile, WRITE_MODE);
+
+	if (fd<0) {
+		dbgPutStr("savePlaylist: open failed\n");
+		return false;
+	}
+
+	boolean result = true;
+	item = playlist.front;
+
+	while (item!=null && result) {
+		int length = strLen(item.path);
+
+		if (write(fd, item.path, length)!=length) {
+			dbgPutStr("savePlaylist: path write failed\n");
+			result = false;
+		} else if (write(fd, "\n", 1)!=1) {
+			dbgPutStr("savePlaylist: newline write failed\n");
+			result = false;
+		}
+
+		item = item.next;
+	}
+
+	if (close(fd)<0) {
+		dbgPutStr("savePlaylist: close failed\n");
+		result = false;
+	}
+	return result;
+}
+
+public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
+    if (playlist==null || playlistFile==null) {
+        dbgPutStr("loadPlaylist: null argument\n");
+        return false;
+    }
+
+    if (playlistFile[0]=='\0') {
+        dbgPutStr("loadPlaylist: empty file name\n");
+        return false;
+    }
+
+    int fd = open(playlistFile, READ_MODE);
+
+    if (fd<0) {
+        dbgPutStr("loadPlaylist: open failed\n");
+        return false;
+    }
+
+    Playlist temporary = createPlaylist();
+
+    if (temporary==null) {
+        dbgPutStr("loadPlaylist: playlist malloc failed\n");
+        close(fd);
+        return false;
+    }
+
+    char[] line = malloc(256);
+
+    if (line==null) {
+        dbgPutStr("loadPlaylist: line malloc failed\n");
+        destroyPlaylist(temporary);
+        close(fd);
+        return false;
+    }
+
+    char[] input = malloc(1);
+
+    if (input==null) {
+        dbgPutStr("loadPlaylist: input malloc failed\n");
+        free(line);
+        destroyPlaylist(temporary);
+        close(fd);
+        return false;
+    }
+
+    boolean result = true;
+    boolean finished = false;
+    int length = 0;
+
+    while (result && !finished) {
+        int received = read(fd, input, 1);
+
+        if (received<0) {
+            dbgPutStr("loadPlaylist: read failed\n");
+            result = false;
+        } else if (received==0) {
+            finished = true;
+
+            // 最後の行に改行がない場合も登録する．
+            if (length>0) {
+                line[length] = '\0';
+                result = addPlaylistFile(temporary, line);
+            }
+        } else {
+            char c = input[0];
+
+            if (c=='\n') {
+                if (length>0) {
+                    line[length] = '\0';
+                    result = addPlaylistFile(temporary, line);
+                    length = 0;
+                }
+            } else if (c=='\0' || c=='\r') {
+                dbgPutStr("loadPlaylist: unsupported character\n");
+                result = false;
+            } else if (length>=255) {
+                dbgPutStr("loadPlaylist: path too long\n");
+                result = false;
+            } else {
+                line[length] = c;
+                length = length+1;
+            }
+        }
+    }
+
+    if (close(fd)<0) {
+        dbgPutStr("loadPlaylist: close failed\n");
+        result = false;
+    }
+
+    free(input);
+    free(line);
+
+    if (!result) {
+        dbgPutStr("loadPlaylist: failed; original kept\n");
+        destroyPlaylist(temporary);
+        return false;
+    }
+
+    // 読込みに成功したので，リストの所有権を交換する．
+    PlaylistItem oldFront = playlist.front;
+    PlaylistItem oldBack = playlist.back;
+    int oldCount = playlist.count;
+
+    playlist.front = temporary.front;
+    playlist.back = temporary.back;
+    playlist.count = temporary.count;
+
+    temporary.front = oldFront;
+    temporary.back = oldBack;
+    temporary.count = oldCount;
+
+    // temporaryには元の内容が入っているので，まとめて解放する．
+    destroyPlaylist(temporary);
+
+    return true;
+}
+
+#ifdef PLAYLIST_UNIT_TEST
+boolean runPlaylistMemoryChecks() {
+	dbgPutStr("Playlist memory test\n");
+
+	dbgPutStr("T0: before initial strLen\n");
+
+    int initialLength = strLen("ABC");
+
+    if (initialLength!=3) {
+        panic("initial strLen returned wrong length");
+    }
+
+    dbgPutStr("T1: initial strLen passed\n");
+
+	Playlist playlist = createPlaylist();
+	if (playlist==null) {
+		dbgPutStr("[NG] createPlaylist\n");
+		return false;
+	}
+
+	boolean result = true;
+
+	if (getPlaylistCount(playlist)==0 && playlist.front==null && playlist.back==null) {
+		dbgPutStr("[OK] empty playlist\n");
+	} else {
+		dbgPutStr("[NG] empty playlist\n");
+		result = false;
+	}
+
+	char[] expected = "/MP3/TEST_A.MP3";
+	dbgPutStr("P1: before buffer malloc\n");
+	char[] actual = malloc(32);
+	dbgPutStr("P2: after buffer malloc\n");
+
+	if (actual==null) {
+		dbgPutStr("[NG] test buffer malloc\n");
+		destroyPlaylist(playlist);
+		return false;
+	}
+
+	dbgPutStr("P3: before addPlaylistFile\n");
+
+	if (addPlaylistFile(playlist, expected)) {
+		dbgPutStr("[OK] add first file\n");
+	} else {
+		dbgPutStr("[NG] add first file\n");
+		result = false;
+	}
+
+	boolean matches = false;
+
+	if (getPlaylistFile(playlist, 0, actual, 32)) {
+		int length = strLen(expected);
+
+		if (strLen(actual)==length) {
+			matches = true;
+
+			for (int i=0; i<length; i=i+1) {
+				if (actual[i]!=expected[i]) {
+					matches = false;
+				}
+			}
+		}
+	}
+
+	if (matches && getPlaylistCount(playlist)==1) {
+		dbgPutStr("[OK] get first file and count\n");
+	} else {
+		dbgPutStr("[NG] get first file and count\n");
+		result = false;
+	}
+
+	if (removePlaylistFile(playlist, 0)) {
+		if (getPlaylistCount(playlist)==0 &&
+			playlist.front==null && playlist.back==null) {
+			dbgPutStr("[OK] remove last remaining file\n");
+		} else {
+			dbgPutStr("[NG] empty state after remove\n");
+			result = false;
+		}
+	} else {
+		dbgPutStr("[NG] remove last remaining file\n");
+		result = false;
+	}
+
+	if (getPlaylistCount(playlist)==0){
+		boolean added = addPlaylistFile(playlist, "/MP3/TEST_A.MP3");
+
+		if (added) {
+			added = addPlaylistFile(playlist, "/MP3/TEST_B.MP3");
+		}
+		if (added) {
+			added = addPlaylistFile(playlist, "/MP3/TEST_C.MP3");
+		}
+
+		if (added) {
+			PlaylistItem first = playlist.front;
+			PlaylistItem last = playlist.back;
+
+			if (removePlaylistFile(playlist, 1)) {
+				if (getPlaylistCount(playlist)==2 &&
+					playlist.front==first &&
+					playlist.back==last &&
+					first!=null && last!=null &&
+					first.prev==null &&
+					first.next==last &&
+					last.prev==first &&
+					last.next==null) {
+					dbgPutStr("[OK] remove middle file\n");
+				} else {
+					dbgPutStr("[NG] remove middle file\n");
+					result = false;
+				}
+			} else {
+				dbgPutStr("[NG] remove middle file\n");
+				result = false;
+			}
+		} else {
+			dbgPutStr("[NG] prepare the files\n");
+			result = false;
+		}
+	} else {
+		dbgPutStr("[NG] playlist not empty before middle test\n");
+		result = false;
+	}
+
+	if (getPlaylistCount(playlist)==2) {
+		PlaylistItem remaining = playlist.back;
+
+		if (removePlaylistFile(playlist, 0)) {
+			if (getPlaylistCount(playlist)==1 &&
+				playlist.front==remaining &&
+				playlist.back==remaining &&
+				remaining!=null &&
+				remaining.prev==null &&
+				remaining.next==null) {
+				dbgPutStr("[OK] remove first file\n");
+			} else {
+				dbgPutStr("[NG] links after first removal\n");
+				result =false;
+			}
+		} else {
+			dbgPutStr("[NG] remove first file\n");
+			result = false;
+		}
+
+	} else {
+		dbgPutStr("[NG] expected two files before first removal\n");
+		result = false;
+	}
+
+	if (getPlaylistCount(playlist)==1) {
+		PlaylistItem remaining = playlist.front;
+		if (addPlaylistFile(playlist, "/MP3/TEST_D.MP3")) {
+			if (removePlaylistFile(playlist, 1)) {
+				if (getPlaylistCount(playlist)==1 &&
+					playlist.front==remaining &&
+					playlist.back==remaining &&
+					remaining!=null &&
+					remaining.prev==null &&
+					remaining.next==null) {
+					dbgPutStr("[OK] remove last file\n");
+				} else {
+					dbgPutStr("[NG] links after last removal\n");
+					result = false;
+				}
+			} else {
+				dbgPutStr("[NG] remove last file\n");
+				result = false;
+			}
+		} else {
+			dbgPutStr("[NG] prepare last file\n");
+			result = false;
+		}
+	} else {
+		dbgPutStr("[NG] expected one file before last test\n");
+		result = false;
+	}
+
+	free(actual);
+	destroyPlaylist(playlist);
+
+	if (result) {
+		dbgPutStr("Playlist memory test:PASS\n");
+	} else {
+		dbgPutStr("Playlist memory test:FAIL\n");
+	}
+
+	return result;
+}
+
+
+public void playlistFaultProbe();
+
+public boolean testPlaylist() {
+    int[] vectors = _ItoA(0xffe0);
+
+    int oldIllegal = vectors[14];
+    int oldSupervisor = vectors[15];
+
+    int oldFlags = setPri(DI|KERN);
+    vectors[14] = addrof(playlistFaultProbe);
+    vectors[15] = addrof(playlistFaultProbe);
+    setPri(oldFlags);
+
+    boolean result = runPlaylistMemoryChecks();
+
+    oldFlags = setPri(DI|KERN);
+    vectors[14] = oldIllegal;
+    vectors[15] = oldSupervisor;
+    setPri(oldFlags);
+
+    return result;
+}
+
+#endif

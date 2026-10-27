@@ -1,0 +1,239 @@
+#include <kernel.hmm>
+#include <util.hmm>
+
+#include <mm.hmm>
+#include <fs.hmm>
+
+#include "../Playlist.hmm"
+
+#define CMMDEF
+#include "lcd.h"
+
+#if 0
+boolean testPlaylistSave() {
+    dbgPutStr("--Playlist save test---\n");
+
+    Playlist playlist = createPlaylist();
+
+    if (playlist==null) {
+        dbgPutStr("[NG] create save-test playlist\n");
+        return false;
+    }
+
+    boolean result = addPlaylistFile(playlist, "/MP3/TEST_A.MP3");
+
+    if (result) {
+        result = addPlaylistFile(playlist, "/MP3/TEST_B.MP3");
+    }
+
+    if (!result) {
+        dbgPutStr("[NG] prepare save-test files\n");
+        destroyPlaylist(playlist);
+        return false;
+    }
+
+    result = savePlaylist(playlist, "/PLTEST.TXT");
+
+    if (result) {
+        dbgPutStr("[OK] save new playlist\n");
+
+        if (savePlaylist(playlist, "/PLTEST.TXT")) {
+            dbgPutStr("[NG] existing file was accepted\n");
+            result = false;
+        } else {
+            dbgPutStr("[OK] existing file rejected\n");
+        }
+    } else {
+        dbgPutStr("[NG] save new playlist\n");
+    }
+
+    destroyPlaylist(playlist);
+
+    if (result) {
+        dbgPutStr("Playlist save test:PASS\n");
+    } else {
+        dbgPutStr("Playlist save test:FAIL\n");
+    }
+
+    return result;
+}
+#endif
+
+boolean hasExpectedPlaylistFiles(Playlist playlist) {
+    if (getPlaylistCount(playlist)!=2) {
+        return false;
+    }
+
+    char[] actual = malloc(256);
+
+    if (actual==null) {
+        dbgPutStr("[NG] comparison buffer malloc\n");
+        return false;
+    }
+
+    boolean result = true;
+
+    for (int index=0; index<2; index=index+1) {
+        char[] expected = "/MP3/TEST_A.MP3";
+
+        if (index==1) {
+            expected = "/MP3/TEST_B.MP3";
+        }
+
+        if (!getPlaylistFile(playlist, index, actual, 256)) {
+            result = false;
+        } else if (strLen(actual)!=strLen(expected)) {
+            result = false;
+        } else {
+            for (int i=0; expected[i]!='\0'; i=i+1) {
+                if (actual[i]!=expected[i]) {
+                    result = false;
+                }
+            }
+        }
+    }
+
+    free(actual);
+    return result;
+}
+
+boolean testPlaylistLoad() {
+    dbgPutStr("--- Playlist load test ---\n");
+
+    Playlist playlist = createPlaylist();
+
+    if (playlist==null) {
+        dbgPutStr("[NG] create load-test playlist\n");
+        return false;
+    }
+
+    boolean result = loadPlaylist(playlist, "/PLTEST.TXT");
+
+    if (result) {
+        result = hasExpectedPlaylistFiles(playlist);
+    }
+
+    if (result) {
+        dbgPutStr("[OK] load count and file order\n");
+    } else {
+        dbgPutStr("[NG] load count and file order\n");
+        destroyPlaylist(playlist);
+        return false;
+    }
+
+    // 一度内容を変更し，再読込みで元の2曲へ置き換わるか確認する．
+    result = addPlaylistFile(playlist, "/MP3/DUMMY.MP3");
+
+    if (result) {
+        result = getPlaylistCount(playlist)==3;
+    }
+
+    if (result) {
+        result = loadPlaylist(playlist, "/PLTEST.TXT");
+    }
+
+    if (result) {
+        result = hasExpectedPlaylistFiles(playlist);
+    }
+
+    if (result) {
+        dbgPutStr("[OK] reload replaces old contents\n");
+    } else {
+        dbgPutStr("[NG] reload replaces old contents\n");
+        destroyPlaylist(playlist);
+        return false;
+    }
+
+    // このファイルは，SDカードに存在しないことが前提．
+    PlaylistItem originalFront = playlist.front;
+    PlaylistItem originalBack = playlist.back;
+
+    boolean loaded = loadPlaylist(playlist, "/PLMISS.TXT");
+
+    result = !loaded;
+
+    if (result) {
+        result = playlist.front==originalFront &&
+                 playlist.back==originalBack;
+    }
+
+    if (result) {
+        result = hasExpectedPlaylistFiles(playlist);
+    }
+
+    if (result) {
+        dbgPutStr("[OK] open failure keeps original\n");
+    } else {
+        dbgPutStr("[NG] open failure keeps original\n");
+    }
+
+    if (result) {
+    // ファイルがないだけでテスト成功にならないよう，存在を確認する．
+        int badFd = open("/PLBAD.TXT", READ_MODE);
+
+        if (badFd<0) {
+            dbgPutStr("[NG] PLBAD.TXT fixture missing\n");
+            result = false;
+        } else if (close(badFd)<0) {
+            dbgPutStr("[NG] fixture close failed\n");
+            result = false;
+        }
+
+        if (result) {
+            boolean badLoaded = loadPlaylist(playlist, "/PLBAD.TXT");
+
+            result = !badLoaded;
+
+            if (result) {
+                result = playlist.front==originalFront &&
+                        playlist.back==originalBack;
+            }
+
+            if (result) {
+                result = hasExpectedPlaylistFiles(playlist);
+            }
+
+            if (result) {
+                dbgPutStr("[OK] partial load failure keeps original\n");
+            } else {
+                dbgPutStr("[NG] partial load failure keeps original\n");
+            }
+        }
+    }
+
+    destroyPlaylist(playlist);
+
+    if (result) {
+        dbgPutStr("Playlist load test:PASS\n");
+    } else {
+        dbgPutStr("Playlist load test:FAIL\n");
+    }
+
+    return result;
+}
+
+public void mp3_show_playlists() {
+    for (int y=0; y<8; y=y+1) {
+        lcd_draw_string(0, y, "                ");
+    }
+
+    lcd_draw_string(0, 0, "Playlist test");
+    dbgPutStr("Home: Playlist integration test\n");
+
+    // boolean passed = testPlaylist();
+
+    // if (passed) {
+    //     // passed = testPlaylistSave();
+    //     passed = testPlaylistLoad();
+    // }
+
+    boolean passed = testPlaylistLoad();
+
+    if (passed) {
+        lcd_draw_string(0, 2, "PASS");
+    } else {
+        lcd_draw_string(0, 2, "FAIL");
+    }
+
+    sleep(3000);
+}
