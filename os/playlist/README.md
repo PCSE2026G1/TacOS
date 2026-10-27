@@ -89,8 +89,8 @@ TaCを組み込みモードで起動し，HomeのPlaylistsを選択する．
 
 ```text
 Home: Playlist integration test
---- Playlist empty-file test ---
-[OK] empty file clears playlist
+--- Playlist no-final-newline test ---
+[OK] last file loaded without newline
 ```
 
 LCDにPASSが表示され，約3秒後にHomeへ戻ることも確認する．
