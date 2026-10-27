@@ -59,7 +59,6 @@ boolean testPlaylistSave() {
 }
 #endif
 
-#if 0
 boolean hasExpectedPlaylistFiles(Playlist playlist) {
     if (getPlaylistCount(playlist)!=2) {
         return false;
@@ -98,6 +97,7 @@ boolean hasExpectedPlaylistFiles(Playlist playlist) {
     return result;
 }
 
+#if 0
 boolean testPlaylistLoad() {
     dbgPutStr("--- Playlist load test ---\n");
 
@@ -256,6 +256,32 @@ boolean testPlaylistEmpty() {
     return result;
 }
 
+boolean testPlaylistNoFinalNewline() {
+    dbgPutStr("--- Playlist no-final-newline test ---\n");
+
+    Playlist playlist = createPlaylist();
+
+    if (playlist==null) {
+        dbgPutStr("[NG] create playlist\n");
+        return false;
+    }
+
+    boolean result = loadPlaylist(playlist, "/PLNOEND.TXT");
+
+    if (result) {
+        result = hasExpectedPlaylistFiles(playlist);
+    }
+
+    if (result) {
+        dbgPutStr("[OK] last file loaded without newline\n");
+    } else {
+        dbgPutStr("[NG] last file loaded without newline\n");
+    }
+
+    destroyPlaylist(playlist);
+    return result;
+}
+
 public void mp3_show_playlists() {
     for (int y=0; y<8; y=y+1) {
         lcd_draw_string(0, y, "                ");
@@ -272,7 +298,8 @@ public void mp3_show_playlists() {
     // }
 
     // boolean passed = testPlaylistLoad();
-    boolean passed = testPlaylistEmpty();
+    // boolean passed = testPlaylistEmpty();
+    boolean passed = testPlaylistNoFinalNewline();
 
     if (passed) {
         lcd_draw_string(0, 2, "PASS");
