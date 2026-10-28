@@ -2,6 +2,7 @@
 #include <mm.hmm>
 #include <MP3Player.hmm>
 #include <list.hmm>
+#include <file_chooser.hmm>
 
 #include "Playlist.hmm"
 #include "PlaylistViewer.hmm"
@@ -17,18 +18,18 @@ char[] createPlaylistDisplayName(char[] path) {
         }
     }
 
-    // ファイル名内の最後の '.' 以降を拡張子として除く．
-    int dot = end;
+    // // ファイル名内の最後の '.' 以降を拡張子として除く．
+    // int dot = end;
 
-    for (int i=start; i<end; i=i+1) {
-        if (path[i]=='.') {
-            dot = i;
-        }
-    }
+    // for (int i=start; i<end; i=i+1) {
+    //     if (path[i]=='.') {
+    //         dot = i;
+    //     }
+    // }
 
-    if (dot>start) {
-        end = dot;
-    }
+    // if (dot>start) {
+    //     end = dot;
+    // }
 
     int length = end-start;
 
@@ -57,37 +58,73 @@ char[] createPlaylistDisplayName(char[] path) {
     return name;
 }
 
-public void showPlaylistViewer(char[] playlistFile) {
-    if (playlistFile==null || playlistFile[0]=='\0') {
-        dbgPutStr("PlaylistViewer: invalid file name\n");
-        return;
-    }
-
-    Playlist playlist = createPlaylist();
-
+boolean addPlaylistFileFromChooser(Playlist playlist) {
     if (playlist==null) {
-        dbgPutStr("PlaylistViewer: playlist malloc failed\n");
-        return;
+        panic("PlaylistViewer: null playlist");
     }
 
-    if (!loadPlaylist(playlist, playlistFile)) {
-        dbgPutStr("PlaylistViewer: load failed\n");
-        destroyPlaylist(playlist);
-        return;
+    char[] path = malloc(256);
+
+    if (path==null) {
+        dbgPutStr("PlaylistViewer: chooser buffer malloc failed\n");
+        return false;
     }
+
+    path[0] = '\0';
+    chooserMp3(path);
+
+    // FileChooserはキャンセル・内部エラーとも空文字列で戻り得る．
+    if (path[0]=='\0') {
+        dbgPutStr("PlaylistViewer: no file selected\n");
+        free(path);
+        return false;
+    }
+
+    int length = strLen(path);
+
+    if (length<4 ||
+        path[length-4]!='.' ||
+        (path[length-3]!='m' && path[length-3]!='M') ||
+        (path[length-2]!='p' && path[length-2]!='P') ||
+        path[length-1]!='3') {
+        dbgPutStr("PlaylistViewer: selected file is not MP3\n");
+        free(path);
+        return false;
+    }
+
+    boolean added = addPlaylistFile(playlist, path);
+
+    if (added) {
+        dbgPutStr("PlaylistViewer: added ");
+        dbgPutStr(path);
+        dbgPutStr("\n");
+    } else {
+        dbgPutStr("PlaylistViewer: add failed\n");
+    }
+
+    // addPlaylistFile()はパスを内部でコピーしている．
+    free(path);
+    return added;
+}
+
+void showPlaylistSongs(Playlist playlist) {
+    if (playlist==null) {
+        panic("PlaylistViewer: null playlist");
+    }
+
 
     int count = getPlaylistCount(playlist);
 
     if (count<=0) {
         dbgPutStr("PlaylistViewer: playlist is empty\n");
-        destroyPlaylist(playlist);
+        // destroyPlaylist(playlist);
         return;
     }
 
     // TaCではポインタが2バイト．count*2の整数あふれを防ぐ．
     if (count>16383) {
         dbgPutStr("PlaylistViewer: too many files\n");
-        destroyPlaylist(playlist);
+        // destroyPlaylist(playlist);
         return;
     }
 
@@ -95,7 +132,7 @@ public void showPlaylistViewer(char[] playlistFile) {
 
     if (files==null) {
         dbgPutStr("PlaylistViewer: array malloc failed\n");
-        destroyPlaylist(playlist);
+        // destroyPlaylist(playlist);
         return;
     }
 
@@ -120,7 +157,7 @@ public void showPlaylistViewer(char[] playlistFile) {
     if (names==null) {
         dbgPutStr("PlaylistViewer: name array malloc failed\n");
         free(files);
-        destroyPlaylist(playlist);
+        // destroyPlaylist(playlist);
         return;
     }
 
@@ -135,7 +172,7 @@ public void showPlaylistViewer(char[] playlistFile) {
 
             free(names);
             free(files);
-            destroyPlaylist(playlist);
+            // destroyPlaylist(playlist);
             return;
         }
     }
@@ -183,6 +220,60 @@ public void showPlaylistViewer(char[] playlistFile) {
     free(names);
 
     free(files);
+    // destroyPlaylist(playlist);
+
+    // dbgPutStr("PlaylistViewer: returned to Home\n");
+    dbgPutStr("PlaylistViewer: song list closed\n");
+}
+
+public void showPlaylistViewer(char[] playlistFile) {
+    if (playlistFile==null || playlistFile[0]=='\0') {
+        dbgPutStr("PlaylistViewer: invalid file name\n");
+        return;
+    }
+
+    Playlist playlist = createPlaylist();
+
+    if (playlist==null) {
+        dbgPutStr("PlaylistViewer: playlist malloc failed\n");
+        return;
+    }
+
+    if (!loadPlaylist(playlist, playlistFile)) {
+        dbgPutStr("PlaylistViewer: load failed\n");
+        destroyPlaylist(playlist);
+        return;
+    }
+
+    char[][] menu = malloc(3*2);
+
+    if (menu==null) {
+        dbgPutStr("PlaylistViewer: menu malloc failed\n");
+        destroyPlaylist(playlist);
+        return;
+    }
+
+    menu[0] = "Songs";
+    menu[1] = "Add song";
+    menu[2] = "Home";
+
+    for (;;) {
+        int action = select("PLAYLIST MENU", menu, 3);
+
+        if (action==-1 || action==2) {
+            break;
+        }
+
+        if (action==0) {
+            showPlaylistSongs(playlist);
+        } else if (action==1) {
+            addPlaylistFileFromChooser(playlist);
+        } else {
+            panic("PlaylistViewer: invalid menu action");
+        }
+    }
+
+    free(menu);
     destroyPlaylist(playlist);
 
     dbgPutStr("PlaylistViewer: returned to Home\n");

@@ -9,6 +9,7 @@ TEST_CPPFLAGS += -I$(OS_ROOT)/mm
 TEST_CPPFLAGS += -I$(OS_ROOT)/fs
 TEST_CPPFLAGS += -I$(OS_ROOT)/mp3Player
 TEST_CPPFLAGS += -I$(OS_ROOT)/list
+TEST_CPPFLAGS += -I$(OS_ROOT)/file
 
 .PHONY: check-entry
 
