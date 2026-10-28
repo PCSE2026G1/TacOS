@@ -338,6 +338,32 @@ boolean testPlaylistPath255() {
         dbgPutStr("[NG] 255 characters and terminator\n");
     }
 
+    if (result) {
+        // 書き換えを検出するため，全体を同じ文字で埋める．
+        for (int i=0; i<256; i=i+1) {
+            actual[i] = 'X';
+        }
+
+        // 実際の確保量は256バイトだが，使用可能量を255と指定する．
+        boolean accepted = getPlaylistFile(
+            playlist, 0, actual, 255
+        );
+
+        result = !accepted;
+
+        for (int i=0; i<256; i=i+1) {
+            if (actual[i]!='X') {
+                result = false;
+            }
+        }
+
+        if (result) {
+            dbgPutStr("[OK] small buffer rejected and unchanged\n");
+        } else {
+            dbgPutStr("[NG] small buffer rejected and unchanged\n");
+        }
+    }
+
     free(actual);
     destroyPlaylist(playlist);
     return result;
