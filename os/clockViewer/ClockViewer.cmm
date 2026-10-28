@@ -3,6 +3,7 @@
 #include <Clock.hmm>
 #include <AudioDecoder.hmm>
 #include <file_chooser.hmm>
+#include <MP3Player.hmm>
 
 #define CMMDEF
 #include "key.h"
@@ -629,4 +630,14 @@ public void showClockViewer() {
 
 public boolean isClockViewerActive() {
   return clockViewerActive;
+}
+
+public boolean showClockViewerIfAlarmRinging() {
+  if (isClockViewerActive()) return false;
+  if (!isAlarmRinging()) return false;
+
+  mp3PlayerInterrupted();
+  showClockViewer();
+
+  return true;
 }
