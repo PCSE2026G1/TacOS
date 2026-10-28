@@ -290,6 +290,59 @@ boolean testPlaylistTwoFiles(char[] file) {
     return result;
 }
 
+boolean testPlaylistPath255() {
+    dbgPutStr("--- Playlist 255-character test ---\n");
+
+    Playlist playlist = createPlaylist();
+
+    if (playlist==null) {
+        dbgPutStr("[NG] create playlist\n");
+        return false;
+    }
+
+    char[] actual = malloc(256);
+
+    if (actual==null) {
+        dbgPutStr("[NG] comparison buffer malloc\n");
+        destroyPlaylist(playlist);
+        return false;
+    }
+
+    boolean result = loadPlaylist(playlist, "/PL255.TXT");
+
+    if (result) {
+        result = getPlaylistCount(playlist)==1;
+    }
+
+    if (result) {
+        result = getPlaylistFile(playlist, 0, actual, 256);
+    }
+
+    if (result) {
+        result = strLen(actual)==255;
+    }
+
+    if (result) {
+        char[] pattern = "0123456789abcdef";
+
+        for (int i=0; i<255; i=i+1) {
+            if (actual[i]!=pattern[i%16]) {
+                result = false;
+            }
+        }
+    }
+
+    if (result) {
+        dbgPutStr("[OK] 255 characters and terminator\n");
+    } else {
+        dbgPutStr("[NG] 255 characters and terminator\n");
+    }
+
+    free(actual);
+    destroyPlaylist(playlist);
+    return result;
+}
+
 public void mp3_show_playlists() {
     for (int y=0; y<8; y=y+1) {
         lcd_draw_string(0, y, "                ");
@@ -308,7 +361,8 @@ public void mp3_show_playlists() {
     // boolean passed = testPlaylistLoad();
     // boolean passed = testPlaylistEmpty();
     // boolean passed = testPlaylistNoFinalNewline();
-    boolean passed = testPlaylistTwoFiles("/PLBLANK.TXT");
+    // boolean passed = testPlaylistTwoFiles("/PLBLANK.TXT");
+    boolean passed = testPlaylistPath255();
 
     if (passed) {
         lcd_draw_string(0, 2, "PASS");

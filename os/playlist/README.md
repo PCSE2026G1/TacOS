@@ -29,6 +29,7 @@
 - 空ファイルを読み込むと，既存の曲が消えて空のPlaylistになること
 - 最後の改行がないファイルでも，最後の曲まで読み込めること
 - 先頭・途中・末尾の空行を飛ばして，2曲を正しい順序で読み込めること
+- 255文字のパスを読み込み，内容と終端文字を取得できること
 
 ## テスト構成の注意
 
@@ -37,7 +38,7 @@
 - HomeStackTestAdapter.sは，Home接続テスト用の補助部品．
 - PlaylistFault.sは，原因調査用の診断部品．
 - これらを本番構成へ取り込むかは別途確認が必要．
-- 現在のテスト入口は空行を含むファイルの読込みテストを実行する．
+- 現在のテスト入口は255文字のパス読込みテストを実行する．
 - 以前の保存・読込みテストはコードを残し，コンパイル対象から一時的に外している．
 
 ## 未確認・未対応
@@ -47,14 +48,13 @@
 - 上書き保存
 - Playlist操作画面
 
-## 現在の空行入りファイル読込みテストの実行方法
+## 255文字のパス読込みテストの実行方法
 
 ### 前提
 
 - クリーンなcloneからの再現手順は，まだ確認していない．
 - 必要な共有部品が既にビルドされていること．
-- tests/PLBLANK.TXTに2曲のパスがあり，先頭・途中・末尾に空行があること．
-- 先頭・途中・末尾に空行がある．5改行・35バイト
+- tests/PL255.TXTには255文字のパスが1行あり，末尾のLF改行を含めて256バイトであること．
 
 ### ビルド
 
@@ -62,7 +62,7 @@
 
 ```sh
 cd os
-wc -l -c playlist/tests/PLBLANK.TXT
+wc -l -c playlist/tests/PL255.TXT
 make -C playlist/tests test-kernel
 size-- playlist/tests/build/kernel0.o
 ```
@@ -73,7 +73,7 @@ size-- playlist/tests/build/kernel0.o
 コピー先の同名ファイルは置き換わるので，事前に確認する．
 
 ```sh
-cp playlist/tests/PLBLANK.TXT /Volumes/TACOS/PLBLANK.TXT
+cp playlist/tests/PL255.TXT /Volumes/TACOS/PL255.TXT
 cp playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 shasum playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 sync
@@ -84,15 +84,15 @@ diskutil eject /Volumes/TACOS
 
 TaCを組み込みモードで起動し，HomeのPlaylistsを選択する．
 
-テストでは，先頭・途中・末尾に空行があるPLBLANK.TXTを読み込む．
-空行を飛ばし，2曲の曲数・曲順・パスを復元する
+テストでは，255文字のパスが1行あるPL255.TXTを読み込む．
+曲数が1，パス長が255文字であり，256バイトのバッファへ内容と終端文字を取得できることを確認する．
 
 期待するシリアル出力：
 
 ```text
 Home: Playlist integration test
---- Playlist two-file test ---
-[OK] two files and order
+--- Playlist 255-character test ---
+[OK] 255 characters and terminator
 ```
 
 LCDにPASSが表示され，約3秒後にHomeへ戻ることも確認する．
