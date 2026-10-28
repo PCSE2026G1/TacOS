@@ -99,6 +99,7 @@ int playlistSelectionAfterFinish(int current, int count, boolean repeat,
   return next;
 }
 
+#ifdef MP3PLAYER_UNIT_TEST
 boolean printMP3PlayerTest(char[] name, boolean result) {
 #ifdef DEBUG
   if (result) printF("[OK] %s\n", name);
@@ -106,6 +107,7 @@ boolean printMP3PlayerTest(char[] name, boolean result) {
 #endif
   return result;
 }
+#endif
 
 boolean isCurrentExternalName(char[] name) {
   int start = 0;
@@ -449,6 +451,7 @@ void handleNaturalFinish(int count) {
   }
 }
 
+#ifdef MP3PLAYER_UNIT_TEST
 public boolean testMP3Player() {
   int count = countMP3Files();
   boolean result = true;
@@ -552,6 +555,7 @@ public boolean testMP3Player() {
 #endif
   return result;
 }
+#endif
 
 public void showMP3PlayerFile(char[] file) {
   if (file==null || file[0]=='\0') return;

@@ -13,6 +13,8 @@ public void mp3PlayerTick();
 public void MP3PlayerInit();
 public void mp3PlayerMonitorMain();
 public void mp3PlayerInterrupted();
+#ifdef MP3PLAYER_UNIT_TEST
 public boolean testMP3Player();
+#endif
 
 #endif
