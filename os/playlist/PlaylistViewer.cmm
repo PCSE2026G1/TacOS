@@ -1,3 +1,4 @@
+#include <kernel.hmm>
 #include <util.hmm>
 #include <mm.hmm>
 #include <MP3Player.hmm>
@@ -7,67 +8,96 @@
 #include "Playlist.hmm"
 #include "PlaylistViewer.hmm"
 
-char[] createPlaylistDisplayName(char[] path) {
-    int start = 0;
-    int end = strLen(path);
+#define CMMDEF
+#include <key.h>
+#include <lcd.h>
 
-    // 最後の '/' の次がファイル名の先頭．
-    for (int i=0; i<end; i=i+1) {
-        if (path[i]=='/') {
-            start = i+1;
+// この画面を操作するプロセスだけが使用する．
+char[] playlistEditorLabel = array(15);
+char[][] playlistExitChoices = array(3);
+
+// 画面遷移前のボタン長押しを，遷移後へ持ち越さない．
+void waitPlaylistEditorKeysReleased() {
+    int released = 0;
+
+    while (released<3) {
+        key_step();
+
+        if (key_read()==0) {
+            released = released+1;
+        } else {
+            released = 0;
         }
+
+        sleep(10);
     }
-
-    // // ファイル名内の最後の '.' 以降を拡張子として除く．
-    // int dot = end;
-
-    // for (int i=start; i<end; i=i+1) {
-    //     if (path[i]=='.') {
-    //         dot = i;
-    //     }
-    // }
-
-    // if (dot>start) {
-    //     end = dot;
-    // }
-
-    int length = end-start;
-
-    if (length<=0) {
-        dbgPutStr("PlaylistViewer: invalid display name\n");
-        return null;
-    }
-
-    // 既存List部品の名前表示欄は14文字．
-    if (length>14) {
-        length = 14;
-    }
-
-    char[] name = malloc(length+1);
-
-    if (name==null) {
-        dbgPutStr("PlaylistViewer: display name malloc failed\n");
-        return null;
-    }
-
-    for (int i=0; i<length; i=i+1) {
-        name[i] = path[start+i];
-    }
-
-    name[length] = '\0';
-    return name;
 }
 
-boolean addPlaylistFileFromChooser(Playlist playlist) {
-    if (playlist==null) {
-        panic("PlaylistViewer: null playlist");
+// タイトル1行・曲一覧6行・操作説明1行を描画する．
+void drawPlaylistEditor(Playlist playlist, int cursor, char[] path) {
+    int count = getPlaylistCount(playlist);
+
+    if (count<0) {
+        panic("PL: invalid count");
     }
 
-    char[] path = malloc(256);
+    for (int y=0; y<8; y=y+1) {
+        lcd_draw_string(0, y, "                ");
+    }
 
-    if (path==null) {
-        dbgPutStr("PlaylistViewer: chooser buffer malloc failed\n");
-        return false;
+    lcd_draw_string(0, 0, "# PLAYLIST #");
+    lcd_draw_string(0, 7, "2:Add3:Del4:Back");
+
+    if (count==0) {
+        lcd_draw_string(0, 1, "(empty)");
+        return;
+    }
+
+    if (cursor<0 || cursor>=count) {
+        panic("PL: invalid cursor");
+    }
+
+    // カーソルを含む6曲分のページを表示する．
+    int first = (cursor/6)*6;
+
+    for (int row=0; row<6 && first+row<count; row=row+1) {
+        int index = first+row;
+
+        if (!getPlaylistFile(playlist, index, path, 256)) {
+            panic("PL: invalid path");
+        }
+
+        // 最後の '/' より後ろをファイル名として表示する．
+        int start = 0;
+
+        for (int i=0; path[i]!='\0'; i=i+1) {
+            if (path[i]=='/') {
+                start = i+1;
+            }
+        }
+
+        int length = 0;
+
+        while (length<14 && path[start+length]!='\0') {
+            playlistEditorLabel[length] = path[start+length];
+            length = length+1;
+        }
+
+        playlistEditorLabel[length] = '\0';
+
+        if (index==cursor) {
+            lcd_draw_string(0, row+1, "*");
+        }
+
+        lcd_draw_string(2, row+1, playlistEditorLabel);
+    }
+}
+
+// pathは呼出し元が確保した256バイトの作業領域．
+// この関数では確保・解放しない．
+boolean addPlaylistFileFromChooser(Playlist playlist, char[] path) {
+    if (playlist==null) {
+        panic("PL: null playlist");
     }
 
     path[0] = '\0';
@@ -75,8 +105,7 @@ boolean addPlaylistFileFromChooser(Playlist playlist) {
 
     // FileChooserはキャンセル・内部エラーとも空文字列で戻り得る．
     if (path[0]=='\0') {
-        dbgPutStr("PlaylistViewer: no file selected\n");
-        free(path);
+        dbgPutStr("PL: no file selected\n");
         return false;
     }
 
@@ -87,227 +116,225 @@ boolean addPlaylistFileFromChooser(Playlist playlist) {
         (path[length-3]!='m' && path[length-3]!='M') ||
         (path[length-2]!='p' && path[length-2]!='P') ||
         path[length-1]!='3') {
-        dbgPutStr("PlaylistViewer: selected file is not MP3\n");
-        free(path);
+        dbgPutStr("PL: selected file is not MP3\n");
         return false;
     }
 
+    // addPlaylistFile()がパスを内部へコピーする．
     boolean added = addPlaylistFile(playlist, path);
 
     if (added) {
-        dbgPutStr("PlaylistViewer: added ");
+        dbgPutStr("PL: added ");
         dbgPutStr(path);
         dbgPutStr("\n");
     } else {
-        dbgPutStr("PlaylistViewer: add failed\n");
+        dbgPutStr("PL: add failed\n");
     }
 
-    // addPlaylistFile()はパスを内部でコピーしている．
-    free(path);
     return added;
 }
 
-void showPlaylistSongs(Playlist playlist, boolean removeMode) {
-    if (playlist==null) {
-        panic("PlaylistViewer: null playlist");
-    }
-
-
+// 選択中の曲と，Playlist全体をMP3Playerへ渡す．
+void openPlaylistEditorPlayer(Playlist playlist, int selected) {
     int count = getPlaylistCount(playlist);
 
-    if (count<=0) {
-        dbgPutStr("PlaylistViewer: playlist is empty\n");
-        // destroyPlaylist(playlist);
-        return;
+    if (count<=0 || selected<0 || selected>=count) {
+        panic("PL: invalid playback index");
     }
 
-    // TaCではポインタが2バイト．count*2の整数あふれを防ぐ．
+    // ポインタ配列のサイズ計算で整数あふれを起こさない．
     if (count>16383) {
-        dbgPutStr("PlaylistViewer: too many files\n");
-        // destroyPlaylist(playlist);
+        dbgPutStr("PL: too many files\n");
         return;
     }
 
     char[][] files = malloc(count*2);
 
     if (files==null) {
-        dbgPutStr("PlaylistViewer: array malloc failed\n");
-        // destroyPlaylist(playlist);
+        dbgPutStr("PL: playback malloc failed\n");
         return;
     }
 
     PlaylistItem item = playlist.front;
 
-    char[] title = "PLAYLIST";
-
-    if (removeMode) {
-        title = "REMOVE SONG";
-    }
-
     for (int i=0; i<count; i=i+1) {
         if (item==null || item.path==null) {
-            panic("PlaylistViewer: broken playlist");
+            panic("PL: broken list");
         }
 
-        // パスの所有権は，まだplaylist側にある．
         files[i] = item.path;
         item = item.next;
     }
 
     if (item!=null) {
-        panic("PlaylistViewer: count mismatch");
+        panic("PL: count mismatch");
     }
 
-    char[][] names = malloc(count*2);
+    dbgPutStr("PL: selected ");
+    dbgPutStr(files[selected]);
+    dbgPutStr("\n");
 
-    if (names==null) {
-        dbgPutStr("PlaylistViewer: name array malloc failed\n");
-        free(files);
-        // destroyPlaylist(playlist);
-        return;
-    }
+    // MP3Player側でパスをコピーして保持する．
+    showMP3PlayerPlaylist(files, count, selected);
 
-    for (int i=0; i<count; i=i+1) {
-        names[i] = createPlaylistDisplayName(files[i]);
-
-        if (names[i]==null) {
-            // 作成済みの表示名だけを解放する．
-            for (int j=0; j<i; j=j+1) {
-                free(names[j]);
-            }
-
-            free(names);
-            free(files);
-            // destroyPlaylist(playlist);
-            return;
-        }
-    }
-
-    // dbgPutStr("PlaylistViewer: opening player\n");
-
-    // // 先頭の曲を選択して，既存の再生詳細画面を開く．
-    // showMP3PlayerPlaylist(files, count, 0);
-
-    // // MP3Playerは受け取ったパスを内部でコピーする．
-    // free(files);
-    // destroyPlaylist(playlist);
-
-    // dbgPutStr("PlaylistViewer: returned from player\n");
-    for (;;) {
-        // int selected = select("PLAYLIST", files, count);
-        // int selected = select("PLAYLIST", names, count);
-        int selected = select(title, names, count);
-
-        // 一覧画面で戻るボタンを押した．
-        if (selected==-1) {
-            break;
-        }
-
-        // select()との契約に反する値は，バグとして検出する．
-        if (selected<0 || selected>=count) {
-            panic("PlaylistViewer: invalid selection");
-        }
-
-        if (removeMode) {
-            // 削除後はパスも解放されるので，先に表示する．
-            dbgPutStr("PlaylistViewer: removing ");
-            dbgPutStr(files[selected]);
-            dbgPutStr("\n");
-
-            if (!removePlaylistFile(playlist, selected)) {
-                panic("PlaylistViewer: removal failed");
-            }
-
-            dbgPutStr("PlaylistViewer: removed\n");
-
-            // filesは削除前の一覧なので，もう使用せずループを抜ける．
-            break;
-        }
-
-        dbgPutStr("PlaylistViewer: selected ");
-        dbgPutStr(files[selected]);
-        dbgPutStr("\n");
-
-        showMP3PlayerPlaylist(files, count, selected);
-
-        dbgPutStr("PlaylistViewer: returned to list\n");
-    }
-
-    // MP3Playerはパスを内部でコピーしているため，
-    // 再生中にHomeへ戻る場合も，こちらの領域は解放できる．
-
-    for (int i=0; i<count; i=i+1) {
-        free(names[i]);
-    }
-
-    free(names);
-
+    // ここでは配列だけを解放する．各パスはPlaylistの所有物．
     free(files);
-    // destroyPlaylist(playlist);
 
-    // dbgPutStr("PlaylistViewer: returned to Home\n");
-    dbgPutStr("PlaylistViewer: song list closed\n");
+    dbgPutStr("PL: returned to list\n");
+}
+
+// trueなら画面を終了し，falseなら編集画面へ戻る．
+boolean confirmPlaylistEditorExit(Playlist playlist) {
+    playlistExitChoices[0] = "Save copy";
+    playlistExitChoices[1] = "Discard";
+    playlistExitChoices[2] = "Cancel";
+
+    int choice = select("LEAVE PLAYLIST", playlistExitChoices, 3);
+
+    if (choice==-1 || choice==2) {
+        return false;
+    }
+
+    if (choice==1) {
+        return true;
+    }
+
+    if (choice!=0) {
+        panic("PL: invalid exit choice");
+    }
+
+    if (savePlaylist(playlist, "/PLSAVE.TXT")) {
+        dbgPutStr("PL: saved copy /PLSAVE.TXT\n");
+        return true;
+    }
+
+    // 保存失敗時は編集内容を破棄せず，画面へ戻す．
+    dbgPutStr("PL: save failed; keeping edits\n");
+    lcd_draw_string(0, 0, "Save failed     ");
+    sleep(1000);
+
+    return false;
 }
 
 public void showPlaylistViewer(char[] playlistFile) {
     if (playlistFile==null || playlistFile[0]=='\0') {
-        dbgPutStr("PlaylistViewer: invalid file name\n");
+        dbgPutStr("PL: invalid file name\n");
         return;
     }
 
     Playlist playlist = createPlaylist();
 
     if (playlist==null) {
-        dbgPutStr("PlaylistViewer: playlist malloc failed\n");
+        dbgPutStr("PL: playlist malloc failed\n");
         return;
     }
 
     if (!loadPlaylist(playlist, playlistFile)) {
-        dbgPutStr("PlaylistViewer: load failed\n");
+        dbgPutStr("PL: load failed\n");
         destroyPlaylist(playlist);
         return;
     }
 
-    char[][] menu = malloc(5*2);
+    // 描画・追加・削除対象の確認に共用する作業領域．
+    char[] path = malloc(256);
 
-    if (menu==null) {
-        dbgPutStr("PlaylistViewer: menu malloc failed\n");
+    if (path==null) {
+        dbgPutStr("PL: display malloc failed\n");
         destroyPlaylist(playlist);
         return;
     }
 
-    menu[0] = "Songs";
-    menu[1] = "Add song";
-    menu[2] = "Remove song";
-    menu[3] = "Save copy";
-    menu[4] = "Home";
+    int cursor = 0;
+    boolean redraw = true;
+
+    waitPlaylistEditorKeysReleased();
 
     for (;;) {
-        int action = select("PLAYLIST MENU", menu, 5);
+        int count = getPlaylistCount(playlist);
 
-        if (action==-1 || action==4) {
-            break;
+        if (count<0) {
+            panic("PL: invalid count");
         }
 
-        if (action==0) {
-            showPlaylistSongs(playlist, false);
-        } else if (action==1) {
-            addPlaylistFileFromChooser(playlist);
-        } else if (action==2) {
-            showPlaylistSongs(playlist, true);
-        } else if (action==3) {
-            if (savePlaylist(playlist, "/PLSAVE.TXT")) {
-                dbgPutStr("PlaylistViewer: saved copy /PLSAVE.TXT\n");
-            } else {
-                dbgPutStr("PlaylistViewer: save copy failed\n");
+        // 最後の曲を削除した場合などにカーソルを補正する．
+        if (count==0) {
+            cursor = 0;
+        } else if (cursor>=count) {
+            cursor = count-1;
+        }
+
+        if (cursor<0) {
+            panic("PL: invalid cursor");
+        }
+
+        if (redraw) {
+            drawPlaylistEditor(playlist, cursor, path);
+            redraw = false;
+        }
+
+        key_step();
+
+        if (key_pressed(KEY_UP)!=0) {
+            // ボタン1：上へ．
+            if (cursor>0) {
+                cursor = cursor-1;
+                redraw = true;
             }
-        } else {
-            panic("PlaylistViewer: invalid menu action");
+        } else if (key_pressed(KEY_DOWN)!=0) {
+            // ボタン5：下へ．
+            if (cursor<count-1) {
+                cursor = cursor+1;
+                redraw = true;
+            }
+        } else if (key_pressed(KEY_LEFT)!=0) {
+            // ボタン2：曲を追加する．
+            if (addPlaylistFileFromChooser(playlist, path)) {
+                cursor = getPlaylistCount(playlist)-1;
+            }
+
+            waitPlaylistEditorKeysReleased();
+            redraw = true;
+        } else if (key_pressed(KEY_RIGHT)!=0) {
+            // ボタン3：カーソル位置の曲を削除する．
+            if (count>0) {
+                if (!getPlaylistFile(playlist, cursor, path, 256)) {
+                    panic("PL: invalid deletion path");
+                }
+
+                dbgPutStr("PL: removing ");
+                dbgPutStr(path);
+                dbgPutStr("\n");
+
+                if (!removePlaylistFile(playlist, cursor)) {
+                    panic("PL: removal failed");
+                }
+
+                dbgPutStr("PL: removed\n");
+                redraw = true;
+            }
+        } else if (key_pressed(KEY_ENTER)!=0) {
+            // ボタン6：カーソル位置の曲を再生する．
+            if (count>0) {
+                openPlaylistEditorPlayer(playlist, cursor);
+            }
+
+            waitPlaylistEditorKeysReleased();
+            redraw = true;
+        } else if (key_pressed(KEY_BACK)!=0) {
+            // ボタン4：保存・破棄・キャンセルを選択する．
+            if (confirmPlaylistEditorExit(playlist)) {
+                break;
+            }
+
+            waitPlaylistEditorKeysReleased();
+            redraw = true;
         }
+
+        sleep(10);
     }
 
-    free(menu);
+    free(path);
     destroyPlaylist(playlist);
 
-    dbgPutStr("PlaylistViewer: returned to Home\n");
+    dbgPutStr("PL: returned to Home\n");
 }

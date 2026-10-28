@@ -5,6 +5,7 @@ TEST_CPPFLAGS += -I/usr/local/cmmInclude -I/usr/cmmInclude
 TEST_CPPFLAGS += -I$(OS_ROOT)/kernel
 TEST_CPPFLAGS += -I$(OS_ROOT)/util
 TEST_CPPFLAGS += -I$(OS_ROOT)/app/src
+TEST_CPPFLAGS += -I$(OS_ROOT)/app/build
 TEST_CPPFLAGS += -I$(OS_ROOT)/mm
 TEST_CPPFLAGS += -I$(OS_ROOT)/fs
 TEST_CPPFLAGS += -I$(OS_ROOT)/mp3Player
