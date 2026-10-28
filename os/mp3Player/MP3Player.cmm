@@ -2,6 +2,7 @@
 #include <util.hmm>
 #include <mm.hmm>
 #include <AudioDecoder.hmm>
+#include <Clock.hmm>
 #include <mp3Proc.hmm>
 #include <fs.hmm>
 
@@ -599,7 +600,15 @@ public void MP3PlayerInit() {
 public void mp3PlayerMonitorMain() {
   for (;;) {
     semP(playerSem);
-    mp3PlayerTick();
+
+    if (isAlarmRinging()) {
+      playerPlaying = false;
+      playerInfoVisible = false;
+      clearPlaylistContext();
+    } else {
+      mp3PlayerTick();
+    }
+
     semV(playerSem);
     sleep(100);
   }
@@ -621,6 +630,22 @@ public void showCurrentMP3Player() {
   if (!playerPlaying) clearPlaylistContext();
 }
 
+void waitPlayerKeysReleased() {
+  int released = 0;
+
+  while (released<3) {
+    key_step();
+
+    if (key_read()==0) {
+      released = released+1;
+    } else {
+      released = 0;
+    }
+
+    sleep(10);
+  }
+}
+
 public void showMP3Player(int type) {
   int count = countMP3Files();
   if (count>0) selectedFile = 1;
@@ -634,6 +659,8 @@ public void showMP3Player(int type) {
 
   if (playerMode==MP3PLAYER_LIST) drawListScreen();
   else drawInfoScreen();
+
+  waitPlayerKeysReleased();
 
   int refresh = 0;
   for (;;) {
