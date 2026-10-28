@@ -184,8 +184,8 @@ void openPlaylistEditorPlayer(Playlist playlist, int selected) {
 }
 
 // trueなら画面を終了し，falseなら編集画面へ戻る．
-boolean confirmPlaylistEditorExit(Playlist playlist) {
-    playlistExitChoices[0] = "Save copy";
+boolean confirmPlaylistEditorExit(Playlist playlist, char[] playlistFile) {
+    playlistExitChoices[0] = "Save";
     playlistExitChoices[1] = "Discard";
     playlistExitChoices[2] = "Cancel";
 
@@ -203,8 +203,10 @@ boolean confirmPlaylistEditorExit(Playlist playlist) {
         panic("PL: invalid exit choice");
     }
 
-    if (savePlaylist(playlist, "/PLSAVE.TXT")) {
-        dbgPutStr("PL: saved copy /PLSAVE.TXT\n");
+    if (savePlaylist(playlist, playlistFile)) {
+        dbgPutStr("PL: saved");
+        dbgPutStr(playlistFile);
+        dbgPutStr("\n");
         return true;
     }
 
@@ -322,7 +324,7 @@ public void showPlaylistViewer(char[] playlistFile) {
             redraw = true;
         } else if (key_pressed(KEY_BACK)!=0) {
             // ボタン4：保存・破棄・キャンセルを選択する．
-            if (confirmPlaylistEditorExit(playlist)) {
+            if (confirmPlaylistEditorExit(playlist, playlistFile)) {
                 break;
             }
 
