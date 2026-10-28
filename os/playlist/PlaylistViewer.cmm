@@ -1,9 +1,61 @@
 #include <util.hmm>
 #include <mm.hmm>
 #include <MP3Player.hmm>
+#include <list.hmm>
 
 #include "Playlist.hmm"
 #include "PlaylistViewer.hmm"
+
+char[] createPlaylistDisplayName(char[] path) {
+    int start = 0;
+    int end = strLen(path);
+
+    // 最後の '/' の次がファイル名の先頭．
+    for (int i=0; i<end; i=i+1) {
+        if (path[i]=='/') {
+            start = i+1;
+        }
+    }
+
+    // ファイル名内の最後の '.' 以降を拡張子として除く．
+    int dot = end;
+
+    for (int i=start; i<end; i=i+1) {
+        if (path[i]=='.') {
+            dot = i;
+        }
+    }
+
+    if (dot>start) {
+        end = dot;
+    }
+
+    int length = end-start;
+
+    if (length<=0) {
+        dbgPutStr("PlaylistViewer: invalid display name\n");
+        return null;
+    }
+
+    // 既存List部品の名前表示欄は14文字．
+    if (length>14) {
+        length = 14;
+    }
+
+    char[] name = malloc(length+1);
+
+    if (name==null) {
+        dbgPutStr("PlaylistViewer: display name malloc failed\n");
+        return null;
+    }
+
+    for (int i=0; i<length; i=i+1) {
+        name[i] = path[start+i];
+    }
+
+    name[length] = '\0';
+    return name;
+}
 
 public void showPlaylistViewer(char[] playlistFile) {
     if (playlistFile==null || playlistFile[0]=='\0') {
@@ -63,14 +115,75 @@ public void showPlaylistViewer(char[] playlistFile) {
         panic("PlaylistViewer: count mismatch");
     }
 
-    dbgPutStr("PlaylistViewer: opening player\n");
+    char[][] names = malloc(count*2);
 
-    // 先頭の曲を選択して，既存の再生詳細画面を開く．
-    showMP3PlayerPlaylist(files, count, 0);
+    if (names==null) {
+        dbgPutStr("PlaylistViewer: name array malloc failed\n");
+        free(files);
+        destroyPlaylist(playlist);
+        return;
+    }
 
-    // MP3Playerは受け取ったパスを内部でコピーする．
+    for (int i=0; i<count; i=i+1) {
+        names[i] = createPlaylistDisplayName(files[i]);
+
+        if (names[i]==null) {
+            // 作成済みの表示名だけを解放する．
+            for (int j=0; j<i; j=j+1) {
+                free(names[j]);
+            }
+
+            free(names);
+            free(files);
+            destroyPlaylist(playlist);
+            return;
+        }
+    }
+
+    // dbgPutStr("PlaylistViewer: opening player\n");
+
+    // // 先頭の曲を選択して，既存の再生詳細画面を開く．
+    // showMP3PlayerPlaylist(files, count, 0);
+
+    // // MP3Playerは受け取ったパスを内部でコピーする．
+    // free(files);
+    // destroyPlaylist(playlist);
+
+    // dbgPutStr("PlaylistViewer: returned from player\n");
+    for (;;) {
+        // int selected = select("PLAYLIST", files, count);
+        int selected = select("PLAYLIST", names, count);
+
+        // 一覧画面で戻るボタンを押した．
+        if (selected==-1) {
+            break;
+        }
+
+        // select()との契約に反する値は，バグとして検出する．
+        if (selected<0 || selected>=count) {
+            panic("PlaylistViewer: invalid selection");
+        }
+
+        dbgPutStr("PlaylistViewer: selected ");
+        dbgPutStr(files[selected]);
+        dbgPutStr("\n");
+
+        showMP3PlayerPlaylist(files, count, selected);
+
+        dbgPutStr("PlaylistViewer: returned to list\n");
+    }
+
+    // MP3Playerはパスを内部でコピーしているため，
+    // 再生中にHomeへ戻る場合も，こちらの領域は解放できる．
+
+    for (int i=0; i<count; i=i+1) {
+        free(names[i]);
+    }
+
+    free(names);
+
     free(files);
     destroyPlaylist(playlist);
 
-    dbgPutStr("PlaylistViewer: returned from player\n");
+    dbgPutStr("PlaylistViewer: returned to Home\n");
 }

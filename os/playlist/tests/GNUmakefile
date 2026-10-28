@@ -8,6 +8,7 @@ TEST_CPPFLAGS += -I$(OS_ROOT)/app/src
 TEST_CPPFLAGS += -I$(OS_ROOT)/mm
 TEST_CPPFLAGS += -I$(OS_ROOT)/fs
 TEST_CPPFLAGS += -I$(OS_ROOT)/mp3Player
+TEST_CPPFLAGS += -I$(OS_ROOT)/list
 
 .PHONY: check-entry
 
