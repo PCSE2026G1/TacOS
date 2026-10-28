@@ -89,7 +89,7 @@ KERNEL_TEST_OBJS += build/Playlist.o
 # KERNEL_TEST_OBJS += build/HomePlaylistTest.o
 KERNEL_TEST_OBJS += build/PlaylistViewer.o
 KERNEL_TEST_OBJS += build/HomePlaylistPlaybackTest.o
-KERNEL_TEST_OBJS += build/PlaylistFault.o
+# KERNEL_TEST_OBJS += build/PlaylistFault.o
 KERNEL_TEST_OBJS += build/HomeStackTestAdapter.o
 
 .PHONY: test-kernel

@@ -268,7 +268,7 @@ public void showPlaylistViewer(char[] playlistFile) {
         return;
     }
 
-    char[][] menu = malloc(4*2);
+    char[][] menu = malloc(5*2);
 
     if (menu==null) {
         dbgPutStr("PlaylistViewer: menu malloc failed\n");
@@ -279,12 +279,13 @@ public void showPlaylistViewer(char[] playlistFile) {
     menu[0] = "Songs";
     menu[1] = "Add song";
     menu[2] = "Remove song";
-    menu[3] = "Home";
+    menu[3] = "Save copy";
+    menu[4] = "Home";
 
     for (;;) {
-        int action = select("PLAYLIST MENU", menu, 4);
+        int action = select("PLAYLIST MENU", menu, 5);
 
-        if (action==-1 || action==3) {
+        if (action==-1 || action==4) {
             break;
         }
 
@@ -294,6 +295,12 @@ public void showPlaylistViewer(char[] playlistFile) {
             addPlaylistFileFromChooser(playlist);
         } else if (action==2) {
             showPlaylistSongs(playlist, true);
+        } else if (action==3) {
+            if (savePlaylist(playlist, "/PLSAVE.TXT")) {
+                dbgPutStr("PlaylistViewer: saved copy /PLSAVE.TXT\n");
+            } else {
+                dbgPutStr("PlaylistViewer: save copy failed\n");
+            }
         } else {
             panic("PlaylistViewer: invalid menu action");
         }

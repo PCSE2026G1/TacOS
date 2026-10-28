@@ -13,6 +13,9 @@
 - 改行コードはLF．CRLFは現在非対応．
 - パスは最大255文字．
 - 保存先に同名ファイルがある場合は保存を拒否する．
+- ViewerのSave copyは，編集内容を固定の/PLSAVE.TXTへ新規保存する．
+- 元の読込みファイルは変更せず，保存後も読込み先を自動変更しない．
+- 保存途中で失敗した場合，不完全な保存先ファイルが残る可能性がある．
 - 読込み成功時は，既存の内容を置き換える．
 - 読込み失敗時は，元のPlaylistを保持する．
 - 同じPlaylistを複数プロセスから同時操作する排他制御は未実装．
@@ -46,6 +49,10 @@
 - 最後の1曲を削除し，空になっても操作メニューへ戻れること
 - 空のPlaylistへ曲を追加し，その曲を再生できること
 - 曲削除をキャンセルしても，Playlistの内容が変わらないこと
+- Save copyで編集後の曲数・曲順・パスを別ファイルへ保存できること
+- 保存先が既に存在する場合，保存を拒否すること
+- 別名保存後も，元のPLPLAY.TXTが変更されないこと
+- 保存したPLSAVE.TXTを読み直し，同じ曲順で表示・再生できること
 
 
 ## テスト構成の注意
@@ -53,24 +60,26 @@
 - tests/GNUmakefileは，既存のビルド済み部品を利用する．
 - 共有部品のソースを自動で再ビルドする構成ではない．
 - HomeStackTestAdapter.sは，Home接続テスト用の補助部品．
-- PlaylistFault.sは，原因調査用の診断部品．
+- PlaylistFault.sは原因調査用の診断部品で，現在の再生接続テストには結合しない．
+- HomeStackTestAdapter.sは，現在のHome接続テストで引き続き使用する．
 - これらを本番構成へ取り込むかは別途確認が必要．
 - 現在のテスト入口は，PlaylistからMP3Playerへの再生接続を確認する．
 - 以前の単体テストはHomePlaylistTest.cmmに残し，現在のテスト用カーネルには結合しない．
 - PlaylistViewerは操作メニュー・曲一覧・曲追加・曲削除・再生詳細画面への接続に対応する．
-- 操作メニューはSongs・Add song・Remove song・Homeの4項目．
+- 操作メニューはSongs・Add song・Remove song・Save copy・Homeの5項目．
 - 一覧は拡張子付きのファイル名を最大14文字で表示する．
-- 曲追加・曲削除はメモリ上だけに反映し，SDカードへ自動保存しない．
+- 曲追加・曲削除はメモリ上へ反映する．SDカードへの保存はSave copyを明示的に選択して行う．
 - 削除した曲は，次に曲一覧を開いた際に一覧から消える．
 - 再生中のMP3Playerは別に曲情報を保持するため，編集対象からの削除だけでは再生を停止しない．
-- 保存の操作画面は未実装．
+- 別名保存に対応する．同名上書き保存・保存先の選択は未実装．
 
 ## 未確認・未対応
 
 - メモリ確保失敗などの障害注入テスト
 - メモリリーク量の測定
-- 上書き保存
-- Playlistの保存操作画面
+- 同名上書き保存
+- 保存先ファイルの選択
+- 保存中の障害・電源断に対する復旧処理
 
 ## 現在のPlaylist再生接続テスト
 
@@ -119,6 +128,46 @@ diskutil eject /Volumes/TACOS
 10. 空の状態からAdd songで曲を追加し，Songsから再生できることを確認する．
 11. Homeへ戻って開き直し，未保存の編集内容が残らず，保存済みの2曲へ戻ることを確認する．
 
+### 別名保存の確認
+
+1. SDカードにPLSAVE.TXTが存在しない状態で開始する．既に存在する場合は，内容を確認し，テスト用として不要な場合だけ削除する．
+2. HomeのPlaylistsを開き，Add songで1曲追加して3曲にする．
+3. Save copyを選択し，保存成功のログを確認する．
+4. もう一度Save copyを選び，既存ファイルとして拒否されることを確認する．
+5. Homeへ戻ってTaCの電源を切り，SDカードをMacへ接続する．
+6. 次のコマンドで，保存内容と元ファイルを確認する．
+
+```sh
+cat /Volumes/TACOS/PLSAVE.TXT
+wc -l -c /Volumes/TACOS/PLSAVE.TXT
+od -An -tx1c /Volumes/TACOS/PLSAVE.TXT
+cat /Volumes/TACOS/PLPLAY.TXT
+```
+
+PLSAVE.TXTには編集後の3曲が同じ順序で記録され，
+PLPLAY.TXTは元の2曲のままであることを確認する．
+不要なNUL文字などが含まれていないことも確認する．
+
+### 保存コピーの再読込み確認
+
+HomePlaylistPlaybackTest.cmmの呼出しを，一時的に次へ変更する．
+
+```c
+showPlaylistViewer("/PLSAVE.TXT");
+```
+
+テスト用カーネルを再ビルド・転送して起動する．
+Songsに保存した3曲が同じ順序で表示され，追加した曲を再生・停止できることを確認する．
+
+確認後は，呼出しを次へ戻して保存する．
+
+```c
+showPlaylistViewer("/PLPLAY.TXT");
+```
+
+通常のテスト入口はPLPLAY.TXTを読み込む．
+Save copyだけでは，次回の読込み先はPLSAVE.TXTへ切り替わらない．
+
 期待するログ：
 
 操作時のログの一例：
@@ -142,6 +191,8 @@ Playlist playback test: returned to Home
 - playlist is empty：Playlistが空であることを示す．
 - song list closed：曲一覧または削除一覧を閉じ，操作メニューへ戻ることを示す．
 - 最後の2行：操作メニューからHomeへ戻ったことを示す．
+- saved copy /PLSAVE.TXT：別名保存に成功したことを示す．
+- save copy failed：保存に失敗したことを示す．直前のsavePlaylistのログで理由を確認する．
 
 ### 構成上の注意
 
