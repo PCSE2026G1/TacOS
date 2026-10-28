@@ -107,7 +107,7 @@ boolean addPlaylistFileFromChooser(Playlist playlist) {
     return added;
 }
 
-void showPlaylistSongs(Playlist playlist) {
+void showPlaylistSongs(Playlist playlist, boolean removeMode) {
     if (playlist==null) {
         panic("PlaylistViewer: null playlist");
     }
@@ -137,6 +137,12 @@ void showPlaylistSongs(Playlist playlist) {
     }
 
     PlaylistItem item = playlist.front;
+
+    char[] title = "PLAYLIST";
+
+    if (removeMode) {
+        title = "REMOVE SONG";
+    }
 
     for (int i=0; i<count; i=i+1) {
         if (item==null || item.path==null) {
@@ -189,7 +195,8 @@ void showPlaylistSongs(Playlist playlist) {
     // dbgPutStr("PlaylistViewer: returned from player\n");
     for (;;) {
         // int selected = select("PLAYLIST", files, count);
-        int selected = select("PLAYLIST", names, count);
+        // int selected = select("PLAYLIST", names, count);
+        int selected = select(title, names, count);
 
         // 一覧画面で戻るボタンを押した．
         if (selected==-1) {
@@ -199,6 +206,22 @@ void showPlaylistSongs(Playlist playlist) {
         // select()との契約に反する値は，バグとして検出する．
         if (selected<0 || selected>=count) {
             panic("PlaylistViewer: invalid selection");
+        }
+
+        if (removeMode) {
+            // 削除後はパスも解放されるので，先に表示する．
+            dbgPutStr("PlaylistViewer: removing ");
+            dbgPutStr(files[selected]);
+            dbgPutStr("\n");
+
+            if (!removePlaylistFile(playlist, selected)) {
+                panic("PlaylistViewer: removal failed");
+            }
+
+            dbgPutStr("PlaylistViewer: removed\n");
+
+            // filesは削除前の一覧なので，もう使用せずループを抜ける．
+            break;
         }
 
         dbgPutStr("PlaylistViewer: selected ");
@@ -245,7 +268,7 @@ public void showPlaylistViewer(char[] playlistFile) {
         return;
     }
 
-    char[][] menu = malloc(3*2);
+    char[][] menu = malloc(4*2);
 
     if (menu==null) {
         dbgPutStr("PlaylistViewer: menu malloc failed\n");
@@ -255,19 +278,22 @@ public void showPlaylistViewer(char[] playlistFile) {
 
     menu[0] = "Songs";
     menu[1] = "Add song";
-    menu[2] = "Home";
+    menu[2] = "Remove song";
+    menu[3] = "Home";
 
     for (;;) {
-        int action = select("PLAYLIST MENU", menu, 3);
+        int action = select("PLAYLIST MENU", menu, 4);
 
-        if (action==-1 || action==2) {
+        if (action==-1 || action==3) {
             break;
         }
 
         if (action==0) {
-            showPlaylistSongs(playlist);
+            showPlaylistSongs(playlist, false);
         } else if (action==1) {
             addPlaylistFileFromChooser(playlist);
+        } else if (action==2) {
+            showPlaylistSongs(playlist, true);
         } else {
             panic("PlaylistViewer: invalid menu action");
         }

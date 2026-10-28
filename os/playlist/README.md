@@ -42,6 +42,11 @@
 - FileChooserをキャンセルしても，Playlistの曲数が変わらないこと
 - 曲追加後に一覧を開き直すと，追加した曲が表示されること
 - 未保存でHomeへ戻り，開き直すと保存済みの内容に戻ること
+- Remove songで選択した曲だけを削除できること
+- 最後の1曲を削除し，空になっても操作メニューへ戻れること
+- 空のPlaylistへ曲を追加し，その曲を再生できること
+- 曲削除をキャンセルしても，Playlistの内容が変わらないこと
+
 
 ## テスト構成の注意
 
@@ -52,17 +57,20 @@
 - これらを本番構成へ取り込むかは別途確認が必要．
 - 現在のテスト入口は，PlaylistからMP3Playerへの再生接続を確認する．
 - 以前の単体テストはHomePlaylistTest.cmmに残し，現在のテスト用カーネルには結合しない．
-- PlaylistViewerは操作メニュー・曲一覧・曲追加・再生詳細画面への接続に対応する．
+- PlaylistViewerは操作メニュー・曲一覧・曲追加・曲削除・再生詳細画面への接続に対応する．
+- 操作メニューはSongs・Add song・Remove song・Homeの4項目．
 - 一覧は拡張子付きのファイル名を最大14文字で表示する．
-- 曲追加はメモリ上だけに反映し，SDカードへ自動保存しない．
-- 曲削除・保存の操作画面は未実装．
+- 曲追加・曲削除はメモリ上だけに反映し，SDカードへ自動保存しない．
+- 削除した曲は，次に曲一覧を開いた際に一覧から消える．
+- 再生中のMP3Playerは別に曲情報を保持するため，編集対象からの削除だけでは再生を停止しない．
+- 保存の操作画面は未実装．
 
 ## 未確認・未対応
 
 - メモリ確保失敗などの障害注入テスト
 - メモリリーク量の測定
 - 上書き保存
-- Playlistの編集画面（削除・保存など）
+- Playlistの保存操作画面
 
 ## 現在のPlaylist再生接続テスト
 
@@ -101,12 +109,15 @@ diskutil eject /Volumes/TACOS
 
 1. HomeのPlaylistsから操作メニューを開く．
 2. Songsで保存済みの2曲を確認する．
-3. 曲を選択し，再生・停止・一覧への復帰を確認する．
+3. 曲を選び，再生・停止・一覧への復帰を確認する．
 4. 一覧でボタン4を押し，操作メニューへ戻る．
-5. Add songで別のMP3を選択する．
-6. Songsで3曲目が増え，その曲を再生できることを確認する．
-7. Add songをキャンセルしても，曲数が変わらないことを確認する．
-8. Homeを選んで戻り，開き直すと保存前の2曲になることを確認する．
+5. Add songで別のMP3を選び，Songsに追加され，再生できることを確認する．
+6. Add songをキャンセルしても，内容が変わらないことを確認する．
+7. Remove songで削除一覧を開き，ボタン4でキャンセルする．内容が変わらないことを確認する．
+8. Remove songで1曲を選び，Songsから選択した曲だけが消えたことを確認する．
+9. 残りの曲も削除し，空にする．SongsやRemove songを選んでも停止せず，操作メニューへ戻れることを確認する．
+10. 空の状態からAdd songで曲を追加し，Songsから再生できることを確認する．
+11. Homeへ戻って開き直し，未保存の編集内容が残らず，保存済みの2曲へ戻ることを確認する．
 
 期待するログ：
 
@@ -114,19 +125,23 @@ diskutil eject /Volumes/TACOS
 
 ```text
 --- Playlist playback integration test ---
-PlaylistViewer: selected /MP3/MAOU_31.mp3
-PlaylistViewer: returned to list
+PlaylistViewer: removing /MP3/MAOU_32.mp3
+PlaylistViewer: removed
 PlaylistViewer: song list closed
-PlaylistViewer: added /MP3/MAOU_33.MP3
 PlaylistViewer: returned to Home
 Playlist playback test: returned to Home
 ```
 
 実際の曲名とログの順序は，行った操作により変わる．
-selectedは再生する曲の決定，returned to listは詳細画面から曲一覧への復帰を示す．
-song list closedは曲一覧から操作メニューへの復帰を示す．
-addedは曲追加成功時に表示される．
-最後の2行は，操作メニューからHomeへ戻った際に表示される．
+
+- selected：再生する曲を決定したことを示す．
+- returned to list：再生詳細画面から曲一覧へ戻ったことを示す．
+- added：曲追加に成功したことを示す．
+- removing：削除対象のフルパスを示す．
+- removed：削除に成功したことを示す．
+- playlist is empty：Playlistが空であることを示す．
+- song list closed：曲一覧または削除一覧を閉じ，操作メニューへ戻ることを示す．
+- 最後の2行：操作メニューからHomeへ戻ったことを示す．
 
 ### 構成上の注意
 
