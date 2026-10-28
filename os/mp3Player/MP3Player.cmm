@@ -621,6 +621,23 @@ public void showCurrentMP3Player() {
   if (!playerPlaying) clearPlaylistContext();
 }
 
+void waitPlayerKeysReleased() {
+    int released = 0;
+
+    while (released<3) {
+        // キー判定の内部状態も更新する．
+        key_step();
+
+        if (key_read()==0) {
+            released = released+1;
+        } else {
+            released = 0;
+        }
+
+        sleep(10);
+    }
+}
+
 public void showMP3Player(int type) {
   int count = countMP3Files();
   if (count>0) selectedFile = 1;
@@ -634,6 +651,8 @@ public void showMP3Player(int type) {
 
   if (playerMode==MP3PLAYER_LIST) drawListScreen();
   else drawInfoScreen();
+
+  waitPlayerKeysReleased();
 
   int refresh = 0;
   for (;;) {
