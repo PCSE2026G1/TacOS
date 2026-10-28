@@ -926,7 +926,6 @@ public boolean testHistory() {
     if (!testHistorySummary()) {
         return false;
     }
-    
     char[] path = "/HREC_TST.TXT";
     char[] first = "/MP3/TEST_A.MP3";
     char[] second = "/MP3/TEST_B.MP3";
