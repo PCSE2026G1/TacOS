@@ -97,8 +97,10 @@
 
 ### 前提
 
-- 必要な共有部品が既にビルドされていること．
-- クリーンなcloneからの再現手順は，まだ確認していない．
+- TaC用ツールチェーン，CMake，Ninja，C/C++コンパイラが利用できること．
+- 共有部品を先にビルドし，その後にPlaylistテスト用カーネルを生成する．
+- commit済みソースを別ディレクトリへ展開し，共有MakefileやHomeの追加変更なしでビルドできることを確認済み．
+- 再現ビルド版の最終実機確認は，以下の手順で行う．
 - SDカードに，PLPLAY.TXTで指定したMP3ファイルが存在すること．
 - このテストは実際の音と画面を確認して判定する．
 
@@ -107,11 +109,35 @@
 リポジトリ直下から実行する．
 
 ```sh
-cd os
-make -C mp3Player EMBEDDED=1 DEBUG= CLOCKVIEWER_UNIT_TEST=0
-make -C playlist/tests test-kernel
-size-- playlist/tests/build/kernel0.o
+(
+  cd os || exit 1
+
+  for dir in util kernel fs mm app file list audioDecoder clock mp3Player clockViewer; do
+    make -C "$dir" EMBEDDED=1 DEBUG= CLOCKVIEWER_UNIT_TEST=0 || exit 1
+  done
+
+  make -C playlist/tests test-kernel || exit 1
+  size-- playlist/tests/build/kernel0.o
+)
 ```
+
+共有部品のビルドでエラーが発生した場合は，先へ進まず原因を確認する．
+Playlistテスト用カーネルはplaylist/tests/build/kernel0.binに生成される．
+os/kernel0.binとは異なるため，転送するファイルを取り違えないこと．
+
+通常の接続テストでは，MP3PLAYER_UNIT_TESTとCLOCKVIEWER_API_TESTを定義しない．
+これらは各APIの単体テスト関数をコンパイルする場合だけ有効にする．
+CLOCKVIEWER_UNIT_TESTとは別のマクロである．
+
+初回のテストデータ配置には，次を使用する．
+既存のPLPLAY.TXTを置き換えるため，必要な内容は事前に退避する．
+
+```sh
+cp playlist/tests/PLPLAY.TXT /Volumes/TACOS/PLPLAY.TXT
+```
+
+更新保存の確認中は，初期データをコピーし直さない．
+HomePlaylistTest.cmm内の旧保存テストは現在無効化されており，更新保存の動作は実機操作で確認している．
 
 ### SDカードへのコピー
 

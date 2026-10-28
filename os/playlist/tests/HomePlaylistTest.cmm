@@ -35,16 +35,16 @@ boolean testPlaylistSave() {
     result = savePlaylist(playlist, "/PLTEST.TXT");
 
     if (result) {
-        dbgPutStr("[OK] save new playlist\n");
+        dbgPutStr("[OK] save playlist\n");
 
         if (savePlaylist(playlist, "/PLTEST.TXT")) {
-            dbgPutStr("[NG] existing file was accepted\n");
-            result = false;
+            dbgPutStr("[OK] existing file updated\n");
         } else {
-            dbgPutStr("[OK] existing file rejected\n");
+            dbgPutStr("[NG] existing file update failed\n");
+            result = false;
         }
     } else {
-        dbgPutStr("[NG] save new playlist\n");
+        dbgPutStr("[NG] save playlist\n");
     }
 
     destroyPlaylist(playlist);
