@@ -7,6 +7,7 @@ TEST_CPPFLAGS += -I$(OS_ROOT)/util
 TEST_CPPFLAGS += -I$(OS_ROOT)/app/src
 TEST_CPPFLAGS += -I$(OS_ROOT)/mm
 TEST_CPPFLAGS += -I$(OS_ROOT)/fs
+TEST_CPPFLAGS += -I$(OS_ROOT)/mp3Player
 
 .PHONY: check-entry
 
@@ -83,7 +84,9 @@ KERNEL_TEST_OBJS += $(OS_ROOT)/clock/mod_0.o
 KERNEL_TEST_OBJS += $(OS_ROOT)/mp3Player/mod_0.o
 KERNEL_TEST_OBJS += $(OS_ROOT)/clockViewer/mod_0.o
 KERNEL_TEST_OBJS += build/Playlist.o
-KERNEL_TEST_OBJS += build/HomePlaylistTest.o
+# KERNEL_TEST_OBJS += build/HomePlaylistTest.o
+KERNEL_TEST_OBJS += build/PlaylistViewer.o
+KERNEL_TEST_OBJS += build/HomePlaylistPlaybackTest.o
 KERNEL_TEST_OBJS += build/PlaylistFault.o
 KERNEL_TEST_OBJS += build/HomeStackTestAdapter.o
 
@@ -91,10 +94,24 @@ KERNEL_TEST_OBJS += build/HomeStackTestAdapter.o
 
 test-kernel: build/kernel0.bin
 
-build/kernel0.o: $(KERNEL_TEST_OBJS)
+build/kernel0.o: $(KERNEL_TEST_OBJS) GNUmakefile
 	ld-- $@ $(KERNEL_TEST_OBJS) > build/kernel0.sym
 	size-- $@
 
 build/kernel0.bin: build/kernel0.o
 	objbin-- 0x0000 $@ $< > build/kernel0.map
 	test -s $@
+
+.PHONY: check-viewer
+
+check-viewer: build/PlaylistViewer.o
+
+build/PlaylistViewer.o: ../PlaylistViewer.cmm ../PlaylistViewer.hmm ../Playlist.hmm $(OS_ROOT)/mp3Player/MP3Player.hmm GNUmakefile
+	mkdir -p build
+	cc -x c -E -P $(TEST_CPPFLAGS) ../PlaylistViewer.cmm -o build/PlaylistViewer.cmm
+	cd build && cm2e -c -K -DEMBEDDED -nostdinc PlaylistViewer.cmm
+
+build/HomePlaylistPlaybackTest.o: HomePlaylistPlaybackTest.cmm ../PlaylistViewer.hmm GNUmakefile
+	mkdir -p build
+	cc -x c -E -P $(TEST_CPPFLAGS) HomePlaylistPlaybackTest.cmm -o build/HomePlaylistPlaybackTest.cmm
+	cd build && cm2e -c -K -DEMBEDDED -nostdinc HomePlaylistPlaybackTest.cmm

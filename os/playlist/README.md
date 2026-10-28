@@ -30,6 +30,10 @@
 - 最後の改行がないファイルでも，最後の曲まで読み込めること
 - 先頭・途中・末尾の空行を飛ばして，2曲を正しい順序で読み込めること
 - 255文字のパスを読み込み，内容と終端文字を取得できること
+- Playlistから実在する曲を再生し，停止してHomeへ戻れること
+- 再生中にHomeへ戻り，Now Playingから再生詳細画面を開けること
+- Now Playingを長押しで開いても，押下が停止操作へ持ち越されないこと
+- Shuffle後の表示と実際の再生曲が一致すること
 
 ## テスト構成の注意
 
@@ -38,8 +42,9 @@
 - HomeStackTestAdapter.sは，Home接続テスト用の補助部品．
 - PlaylistFault.sは，原因調査用の診断部品．
 - これらを本番構成へ取り込むかは別途確認が必要．
-- 現在のテスト入口は255文字のパス読込みテストを実行する．
-- 以前の保存・読込みテストはコードを残し，コンパイル対象から一時的に外している．
+- 現在のテスト入口は，PlaylistからMP3Playerへの再生接続を確認する．
+- 以前の単体テストはHomePlaylistTest.cmmに残し，現在のテスト用カーネルには結合しない．
+- PlaylistViewerは現段階では先頭曲の再生接続のみで，一覧・編集画面は未実装．
 
 ## 未確認・未対応
 
@@ -48,13 +53,14 @@
 - 上書き保存
 - Playlist操作画面
 
-## 255文字のパス読込みテストの実行方法
+## 現在のPlaylist再生接続テスト
 
 ### 前提
 
-- クリーンなcloneからの再現手順は，まだ確認していない．
 - 必要な共有部品が既にビルドされていること．
-- tests/PL255.TXTには255文字のパスが1行あり，末尾のLF改行を含めて256バイトであること．
+- クリーンなcloneからの再現手順は，まだ確認していない．
+- SDカードに，PLPLAY.TXTで指定したMP3ファイルが存在すること．
+- このテストは実際の音と画面を確認して判定する．
 
 ### ビルド
 
@@ -62,42 +68,48 @@
 
 ```sh
 cd os
-wc -l -c playlist/tests/PL255.TXT
+make -C mp3Player EMBEDDED=1 DEBUG= CLOCKVIEWER_UNIT_TEST=0
 make -C playlist/tests test-kernel
 size-- playlist/tests/build/kernel0.o
 ```
 
 ### SDカードへのコピー
 
-ビルド成功後，SDカードが /Volumes/TACOS にある状態で実行する．
-コピー先の同名ファイルは置き換わるので，事前に確認する．
+ビルド成功後に実行する．同名ファイルは置き換わるため，
+事前にコピー先を確認する．
 
 ```sh
-cp playlist/tests/PL255.TXT /Volumes/TACOS/PL255.TXT
+cp playlist/tests/PLPLAY.TXT /Volumes/TACOS/PLPLAY.TXT
 cp playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 shasum playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 sync
 diskutil eject /Volumes/TACOS
 ```
 
-### 実機での操作と期待結果
+### 実機での確認
 
-TaCを組み込みモードで起動し，HomeのPlaylistsを選択する．
+1. HomeのPlaylistsを選択する．
+2. Playlistの先頭曲が再生され，詳細画面が正常に表示されることを確認する．
+3. ボタン6で停止し，ボタン4でHomeへ戻れることを確認する．
+4. 再度再生し，停止せずHomeへ戻っても音が続くことを確認する．
+5. Now Playingを長押しで開いても停止しないことを確認する．
+6. ボタンを離し，改めてボタン6を押すと停止することを確認する．
+7. Shuffle後の表示と実際の再生曲が一致することを確認する．
 
-テストでは，255文字のパスが1行あるPL255.TXTを読み込む．
-曲数が1，パス長が255文字であり，256バイトのバッファへ内容と終端文字を取得できることを確認する．
-
-期待するシリアル出力：
+期待するログ：
 
 ```text
-Home: Playlist integration test
---- Playlist 255-character test ---
-[OK] 255 characters and terminator
+--- Playlist playback integration test ---
+PlaylistViewer: opening player
+PlaylistViewer: returned from player
+Playlist playback test: returned to Home
 ```
 
-LCDにPASSが表示され，約3秒後にHomeへ戻ることも確認する．
+後半2行は，再生詳細画面から戻った際に表示される．
+ログだけでは再生成功と判定せず，音・停止・画面も確認する．
 
-### 注意
+### 構成上の注意
 
-- 現在の構成は開発途中のテスト用であり，本番への統合完了を意味しない．
-- 以前のテスト用ファイルPLTEST.TXTとPLBAD.TXTは，今回は使用しない．
+- HomePlaylistPlaybackTest.cmmがテスト用の入口を定義する．
+- 元のHomeのソースは変更せず，テスト用の部品を組み合わせる．
+- スタック補助を含むテスト構成であり，本番への統合完了を意味しない．

@@ -1,0 +1,76 @@
+#include <util.hmm>
+#include <mm.hmm>
+#include <MP3Player.hmm>
+
+#include "Playlist.hmm"
+#include "PlaylistViewer.hmm"
+
+public void showPlaylistViewer(char[] playlistFile) {
+    if (playlistFile==null || playlistFile[0]=='\0') {
+        dbgPutStr("PlaylistViewer: invalid file name\n");
+        return;
+    }
+
+    Playlist playlist = createPlaylist();
+
+    if (playlist==null) {
+        dbgPutStr("PlaylistViewer: playlist malloc failed\n");
+        return;
+    }
+
+    if (!loadPlaylist(playlist, playlistFile)) {
+        dbgPutStr("PlaylistViewer: load failed\n");
+        destroyPlaylist(playlist);
+        return;
+    }
+
+    int count = getPlaylistCount(playlist);
+
+    if (count<=0) {
+        dbgPutStr("PlaylistViewer: playlist is empty\n");
+        destroyPlaylist(playlist);
+        return;
+    }
+
+    // TaCではポインタが2バイト．count*2の整数あふれを防ぐ．
+    if (count>16383) {
+        dbgPutStr("PlaylistViewer: too many files\n");
+        destroyPlaylist(playlist);
+        return;
+    }
+
+    char[][] files = malloc(count*2);
+
+    if (files==null) {
+        dbgPutStr("PlaylistViewer: array malloc failed\n");
+        destroyPlaylist(playlist);
+        return;
+    }
+
+    PlaylistItem item = playlist.front;
+
+    for (int i=0; i<count; i=i+1) {
+        if (item==null || item.path==null) {
+            panic("PlaylistViewer: broken playlist");
+        }
+
+        // パスの所有権は，まだplaylist側にある．
+        files[i] = item.path;
+        item = item.next;
+    }
+
+    if (item!=null) {
+        panic("PlaylistViewer: count mismatch");
+    }
+
+    dbgPutStr("PlaylistViewer: opening player\n");
+
+    // 先頭の曲を選択して，既存の再生詳細画面を開く．
+    showMP3PlayerPlaylist(files, count, 0);
+
+    // MP3Playerは受け取ったパスを内部でコピーする．
+    free(files);
+    destroyPlaylist(playlist);
+
+    dbgPutStr("PlaylistViewer: returned from player\n");
+}
