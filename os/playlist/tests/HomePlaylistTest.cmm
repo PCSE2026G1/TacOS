@@ -256,8 +256,10 @@ boolean testPlaylistEmpty() {
     return result;
 }
 
-boolean testPlaylistNoFinalNewline() {
-    dbgPutStr("--- Playlist no-final-newline test ---\n");
+// boolean testPlaylistNoFinalNewline() {
+boolean testPlaylistTwoFiles(char[] file) {
+    // dbgPutStr("--- Playlist no-final-newline test ---\n");
+    dbgPutStr("--- Playlist two-file test ---\n");
 
     Playlist playlist = createPlaylist();
 
@@ -266,16 +268,22 @@ boolean testPlaylistNoFinalNewline() {
         return false;
     }
 
-    boolean result = loadPlaylist(playlist, "/PLNOEND.TXT");
+    // boolean result = loadPlaylist(playlist, "/PLNOEND.TXT");
+    boolean result = loadPlaylist(playlist, file);
 
     if (result) {
         result = hasExpectedPlaylistFiles(playlist);
     }
 
+    // if (result) {
+    //     dbgPutStr("[OK] last file loaded without newline\n");
+    // } else {
+    //     dbgPutStr("[NG] last file loaded without newline\n");
+    // }
     if (result) {
-        dbgPutStr("[OK] last file loaded without newline\n");
+        dbgPutStr("[OK] two files and order\n");
     } else {
-        dbgPutStr("[NG] last file loaded without newline\n");
+        dbgPutStr("[NG] two files and order\n");
     }
 
     destroyPlaylist(playlist);
@@ -299,7 +307,8 @@ public void mp3_show_playlists() {
 
     // boolean passed = testPlaylistLoad();
     // boolean passed = testPlaylistEmpty();
-    boolean passed = testPlaylistNoFinalNewline();
+    // boolean passed = testPlaylistNoFinalNewline();
+    boolean passed = testPlaylistTwoFiles("/PLBLANK.TXT");
 
     if (passed) {
         lcd_draw_string(0, 2, "PASS");

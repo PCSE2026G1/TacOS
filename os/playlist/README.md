@@ -28,6 +28,7 @@
 - Homeからの起動・復帰と繰り返し実行
 - 空ファイルを読み込むと，既存の曲が消えて空のPlaylistになること
 - 最後の改行がないファイルでも，最後の曲まで読み込めること
+- 先頭・途中・末尾の空行を飛ばして，2曲を正しい順序で読み込めること
 
 ## テスト構成の注意
 
@@ -36,7 +37,7 @@
 - HomeStackTestAdapter.sは，Home接続テスト用の補助部品．
 - PlaylistFault.sは，原因調査用の診断部品．
 - これらを本番構成へ取り込むかは別途確認が必要．
-- 現在のテスト入口は空ファイル読込みテストを実行する．
+- 現在のテスト入口は空行を含むファイルの読込みテストを実行する．
 - 以前の保存・読込みテストはコードを残し，コンパイル対象から一時的に外している．
 
 ## 未確認・未対応
@@ -46,13 +47,14 @@
 - 上書き保存
 - Playlist操作画面
 
-## 現在の空ファイル読込みテストの実行方法
+## 現在の空行入りファイル読込みテストの実行方法
 
 ### 前提
 
-- 必要な共有部品が既にビルドされていること．
 - クリーンなcloneからの再現手順は，まだ確認していない．
-- tests/PLEMPTY.TXTが0バイトの空ファイルであること．
+- 必要な共有部品が既にビルドされていること．
+- tests/PLBLANK.TXTに2曲のパスがあり，先頭・途中・末尾に空行があること．
+- 先頭・途中・末尾に空行がある．5改行・35バイト
 
 ### ビルド
 
@@ -60,7 +62,7 @@
 
 ```sh
 cd os
-wc -c playlist/tests/PLEMPTY.TXT
+wc -l -c playlist/tests/PLBLANK.TXT
 make -C playlist/tests test-kernel
 size-- playlist/tests/build/kernel0.o
 ```
@@ -71,7 +73,7 @@ size-- playlist/tests/build/kernel0.o
 コピー先の同名ファイルは置き換わるので，事前に確認する．
 
 ```sh
-cp playlist/tests/PLEMPTY.TXT /Volumes/TACOS/PLEMPTY.TXT
+cp playlist/tests/PLBLANK.TXT /Volumes/TACOS/PLBLANK.TXT
 cp playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 shasum playlist/tests/build/kernel0.bin /Volumes/TACOS/KERNEL0.BIN
 sync
@@ -82,15 +84,15 @@ diskutil eject /Volumes/TACOS
 
 TaCを組み込みモードで起動し，HomeのPlaylistsを選択する．
 
-テストでは，最初に仮の1曲を登録し，空ファイルを読み込む．
-読込みが成功し，曲数が0，frontとbackがnullになることを確認する．
+テストでは，先頭・途中・末尾に空行があるPLBLANK.TXTを読み込む．
+空行を飛ばし，2曲の曲数・曲順・パスを復元する
 
 期待するシリアル出力：
 
 ```text
 Home: Playlist integration test
---- Playlist no-final-newline test ---
-[OK] last file loaded without newline
+--- Playlist two-file test ---
+[OK] two files and order
 ```
 
 LCDにPASSが表示され，約3秒後にHomeへ戻ることも確認する．
