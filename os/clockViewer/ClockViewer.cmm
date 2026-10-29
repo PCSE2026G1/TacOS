@@ -3,6 +3,7 @@
 #include <Clock.hmm>
 #include <AudioDecoder.hmm>
 #include <file_chooser.hmm>
+#include <MP3Player.hmm>
 
 #define CMMDEF
 #include "key.h"
@@ -463,6 +464,22 @@ void clockViewerChooseFile() {
   clockViewerDraw();
 }
 
+void waitClockViewerKeysReleased() {
+  int released = 0;
+
+  while (released<3) {
+    key_step();
+
+    if (key_read()==0) {
+      released = released+1;
+    } else {
+      released = 0;
+    }
+
+    sleep(10);
+  }
+}
+
 public void showClockViewer() {
   clockViewerActive = true;
   clockViewerItem = CLOCK_ITEM_TIME;
@@ -474,8 +491,21 @@ public void showClockViewer() {
   if (clockViewerAlarmRinging) clockViewerItem = CLOCK_ITEM_ALARM;
   clockViewerDraw();
 
+  waitClockViewerKeysReleased();
+
   int refresh = 0;
   for (;;) {
+    if (isAlarmRinging() && !clockViewerAlarmRinging) {
+      clockViewerAlarmRinging = true;
+      clockViewerEdit = CLOCK_EDIT_NONE;
+      clockViewerItem = CLOCK_ITEM_ALARM;
+      refresh = 0;
+
+      clockViewerLoadState();
+      clockViewerDraw();
+      waitClockViewerKeysReleased();
+    }
+
     key_step();
 
     if (clockViewerEdit==CLOCK_EDIT_ALARM) {
@@ -606,4 +636,14 @@ public void showClockViewer() {
 
 public boolean isClockViewerActive() {
   return clockViewerActive;
+}
+
+public boolean showClockViewerIfAlarmRinging() {
+  if (isClockViewerActive()) return false;
+  if (!isAlarmRinging()) return false;
+
+  mp3PlayerInterrupted();
+  showClockViewer();
+
+  return true;
 }

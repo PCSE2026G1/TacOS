@@ -2,6 +2,7 @@
 #include <util.hmm>
 #include <mm.hmm>
 #include <AudioDecoder.hmm>
+#include <Clock.hmm>
 #include <mp3Proc.hmm>
 #include <fs.hmm>
 
@@ -603,7 +604,15 @@ public void MP3PlayerInit() {
 public void mp3PlayerMonitorMain() {
   for (;;) {
     semP(playerSem);
-    mp3PlayerTick();
+
+    if (isAlarmRinging()) {
+      playerPlaying = false;
+      playerInfoVisible = false;
+      clearPlaylistContext();
+    } else {
+      mp3PlayerTick();
+    }
+
     semV(playerSem);
     sleep(100);
   }
@@ -626,20 +635,19 @@ public void showCurrentMP3Player() {
 }
 
 void waitPlayerKeysReleased() {
-    int released = 0;
+  int released = 0;
 
-    while (released<3) {
-        // キー判定の内部状態も更新する．
-        key_step();
+  while (released<3) {
+    key_step();
 
-        if (key_read()==0) {
-            released = released+1;
-        } else {
-            released = 0;
-        }
-
-        sleep(10);
+    if (key_read()==0) {
+      released = released+1;
+    } else {
+      released = 0;
     }
+
+    sleep(10);
+  }
 }
 
 public void showMP3Player(int type) {

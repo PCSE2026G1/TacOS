@@ -3,6 +3,7 @@
 
 public void showClockViewer();
 public boolean isClockViewerActive();
+public boolean showClockViewerIfAlarmRinging();
 
 #ifdef CLOCKVIEWER_API_TEST
 public boolean testClockViewer();
