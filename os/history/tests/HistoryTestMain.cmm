@@ -1,0 +1,145 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <spi.hmm>
+#include <lcd.hmm>
+#include <AudioDecoder.hmm>
+#include "History.hmm"
+
+#define CMMDEF
+#include <stacksafe.h>
+#include <key.h>
+
+char[] historyTestPCB =
+    array((sizeof(PCB)+P_KERN_STKSIZ+1)&~1);
+
+int[] historyTestFds = array(P_FILE_MAX);
+char[] historyTestStack = array(512);
+
+void waitHistoryTestKeysReleased() {
+    int released = 0;
+
+    while (released<3) {
+        key_step();
+
+        if (key_read()==0) {
+            released = released+1;
+        } else {
+            released = 0;
+        }
+
+        sleep(10);
+    }
+}
+
+void drawHistoryPlaybackMenu() {
+    cls();
+
+    locateXY(0, 0);
+    putStr("HISTORY PLAYTEST");
+
+    locateXY(0, 1);
+    putStr("1:A +history");
+
+    locateXY(0, 2);
+    putStr("2:B +history");
+
+    locateXY(0, 3);
+    putStr("3:A no history");
+
+    locateXY(0, 4);
+    putStr("4:History");
+
+    locateXY(0, 5);
+    putStr("6:Stop");
+}
+
+void runHistoryRecordTest() {
+    spiResetLcd();
+
+    boolean passed = testHistory();
+
+    locateXY(0, 0);
+    putStr("HISTORY TEST");
+
+    locateXY(0, 2);
+
+    if (!passed) {
+        putStr("FAIL");
+        return;
+    }
+
+    putStr("PASS");
+    sleep(1000);
+
+    waitHistoryTestKeysReleased();
+
+    boolean redraw = true;
+
+    for (;;) {
+        if (redraw) {
+            drawHistoryPlaybackMenu();
+            redraw = false;
+        }
+
+        key_step();
+
+        if (key_pressed(KEY_UP)!=0) {
+            dbgPutStr("H play: A, save=true\n");
+
+            if (!MP3playfile("/MP3/MAOU_31.MP3", true)) {
+                dbgPutStr("H play: start failed\n");
+            }
+
+            waitHistoryTestKeysReleased();
+        } else if (key_pressed(KEY_LEFT)!=0) {
+            dbgPutStr("H play: B, save=true\n");
+
+            if (!MP3playfile("/MP3/MAOU_32.MP3", true)) {
+                dbgPutStr("H play: start failed\n");
+            }
+
+            waitHistoryTestKeysReleased();
+        } else if (key_pressed(KEY_RIGHT)!=0) {
+            dbgPutStr("H play: A, save=false\n");
+
+            if (!MP3playfile("/MP3/MAOU_31.MP3", false)) {
+                dbgPutStr("H play: start failed\n");
+            }
+
+            waitHistoryTestKeysReleased();
+        } else if (key_pressed(KEY_BACK)!=0) {
+            showHistory();
+
+            waitHistoryTestKeysReleased();
+            redraw = true;
+        } else if (key_pressed(KEY_ENTER)!=0) {
+            MP3stop();
+            dbgPutStr("H play: stopped\n");
+
+            waitHistoryTestKeysReleased();
+        }
+
+        sleep(10);
+    }
+}
+
+void historyTestProcess() {
+    stacksafe(historyTestStack, 512, addrof(runHistoryRecordTest), 0);
+
+    for (;;) {
+        sleep(1000);
+    }
+}
+
+public void app_init_processes() {
+    newProc(
+        addrof(historyTestProcess),
+        2,
+        0,
+        EI|KERN,
+        _AtoA(historyTestPCB),
+        historyTestFds
+    );
+
+    schProc(_AtoA(historyTestPCB));
+}

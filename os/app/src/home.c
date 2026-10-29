@@ -18,7 +18,8 @@ extern void home_show(VOID)
         if (!COND(isMP3PlayerPlaying()))
             DEC(size);
         int i = select("HOME", home_titles_ptr, size);
-        stacksafe(sf_buf, 512, home_functions_ptr[i], 0);
+        if (i >= 0)
+            stacksafe(sf_buf, 512, home_functions_ptr[i], 0);
     }
 }
 
