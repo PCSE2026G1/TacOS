@@ -7,6 +7,7 @@
 #include <util.hmm>
 
 #include "AudioDecoder.hmm"
+#include "../history/History.hmm"
 
 // VS1011E SCI register addresses
 #define SCI_DECODE_TIME 0x04
@@ -15,7 +16,7 @@
 
 #define MIN_SAMPLE_RATE_HALF  4000
 #define MAX_SAMPLE_RATE_HALF 24000
-#define PLAY_HISTORY_FILE "/playHistory.txt"
+// #define PLAY_HISTORY_FILE "/playHistory.txt"
 #define PLAY_HISTORY_TEST_FILE "/HISTTEST.TXT"
 #define PLAY_HISTORY_BUFFER_SIZE 1024
 
@@ -24,10 +25,10 @@ int baseAudioData = 0;
 int speedValue = 100;
 int volumeValue = 40;
 int audioDecoderSem = -1;
-char[] playHistoryBuffer = array(PLAY_HISTORY_BUFFER_SIZE);
 char[] playbackFile = array(256);
 
 #ifdef DEBUG
+char[] playHistoryBuffer = array(PLAY_HISTORY_BUFFER_SIZE);
 char[] historyTestActual = array(64);
 #endif
 
@@ -57,6 +58,7 @@ boolean captureBaseAudioData() {
   return true;
 }
 
+#ifdef DEBUG
 boolean appendLineSafe(char[] historyFile, char[] line) {
   int oldLength = 0;
   int fd;
@@ -95,9 +97,13 @@ boolean appendLineSafe(char[] historyFile, char[] line) {
   if (close(fd)<0) return false;
   return true;
 }
+#endif
 
+// boolean addPlayHistory(char[] file) {
+//   return appendLineSafe(PLAY_HISTORY_FILE, file);
+// }
 boolean addPlayHistory(char[] file) {
-  return appendLineSafe(PLAY_HISTORY_FILE, file);
+    return recordPlayHistory(file);
 }
 
 #ifdef DEBUG
@@ -203,9 +209,7 @@ public boolean MP3playfile(char[] file, boolean save) {
     return false;
   }
   if (save && !addPlayHistory(playbackFile)) {
-#ifdef DEBUG
-    printF("play history save failed:%s\n", playbackFile);
-#endif
+      dbgPutStr("AudioDecoder: history save failed\n");
   }
   semV(audioDecoderSem);
   return true;

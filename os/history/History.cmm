@@ -1,0 +1,1093 @@
+#include <fs.hmm>
+#include <errno.hmm>
+#include <mm.hmm>
+#include <util.hmm>
+#include <string.hmm>
+#include <kernel.hmm>
+#include <lcd.hmm>
+
+#define CMMDEF
+#include <key.h>
+
+#include "History.hmm"
+
+// 1曲分の集計結果．
+struct HistoryEntry {
+    HistoryEntry next;
+    char[] path;
+    int playCount;
+};
+
+// 集計結果全体．countは再生回数ではなく，曲の種類数．
+struct HistorySummary {
+    HistoryEntry front;
+    HistoryEntry back;
+    int count;
+};
+
+HistorySummary createHistorySummary() {
+    HistorySummary summary = malloc(sizeof(HistorySummary));
+
+    if (summary==null) {
+        dbgPutStr("H: summary malloc failed\n");
+        return null;
+    }
+
+    summary.front = null;
+    summary.back = null;
+    summary.count = 0;
+
+    return summary;
+}
+
+void destroyHistorySummary(HistorySummary summary) {
+    if (summary==null) {
+        panic("H: null summary");
+    }
+
+    HistoryEntry entry = summary.front;
+
+    while (entry!=null) {
+        HistoryEntry next = entry.next;
+
+        free(entry.path);
+        free(entry);
+
+        entry = next;
+    }
+
+    free(summary);
+}
+
+// 英字の大文字・小文字を区別せず比較する．
+boolean sameHistoryPath(char[] first, char[] second) {
+    int i = 0;
+
+    while (first[i]!='\0' && second[i]!='\0') {
+        if (toUpper(first[i])!=toUpper(second[i])) {
+            return false;
+        }
+
+        i = i+1;
+    }
+
+    return first[i]==second[i];
+}
+
+// 既存の曲なら回数を増やし，新しい曲なら末尾へ登録する．
+boolean addHistoryCount(HistorySummary summary, char[] path) {
+    if (summary==null || path==null) {
+        panic("H: null count argument");
+    }
+
+    int length = 0;
+
+    while (length<256 && path[length]!='\0') {
+        if (path[length]=='\n' || path[length]=='\r') {
+            dbgPutStr("H: invalid count path\n");
+            return false;
+        }
+
+        length = length+1;
+    }
+
+    if (length==0 || length>255) {
+        dbgPutStr("H: invalid count length\n");
+        return false;
+    }
+
+    HistoryEntry entry = summary.front;
+
+    while (entry!=null) {
+        if (sameHistoryPath(entry.path, path)) {
+            if (entry.playCount>=32767) {
+                dbgPutStr("H: play count overflow\n");
+                return false;
+            }
+
+            entry.playCount = entry.playCount+1;
+            return true;
+        }
+
+        entry = entry.next;
+    }
+
+    if (summary.count>=32767) {
+        dbgPutStr("H: too many tracks\n");
+        return false;
+    }
+
+    HistoryEntry added = malloc(sizeof(HistoryEntry));
+
+    if (added==null) {
+        dbgPutStr("H: entry malloc failed\n");
+        return false;
+    }
+
+    char[] storedPath = malloc(length+1);
+
+    if (storedPath==null) {
+        dbgPutStr("H: path malloc failed\n");
+        free(added);
+        return false;
+    }
+
+    strCpy(storedPath, path);
+
+    added.path = storedPath;
+    added.next = null;
+    added.playCount = 1;
+
+    if (summary.back==null) {
+        summary.front = added;
+    } else {
+        summary.back.next = added;
+    }
+
+    summary.back = added;
+    summary.count = summary.count+1;
+
+    return true;
+}
+
+// テスト時には別の履歴ファイルも指定できる内部関数．
+boolean appendHistoryLine(char[] historyFile, char[] file) {
+    if (historyFile==null || file==null) {
+        dbgPutStr("H: null argument\n");
+        return false;
+    }
+
+    int length = 0;
+
+    while (length<256 && file[length]!='\0') {
+        if (file[length]=='\n' || file[length]=='\r') {
+            dbgPutStr("H: newline in path\n");
+            return false;
+        }
+
+        length = length+1;
+    }
+
+    if (length==0 || length>255) {
+        dbgPutStr("H: invalid path length\n");
+        return false;
+    }
+
+    Stat info = malloc(sizeof(Stat));
+
+    if (info==null) {
+        dbgPutStr("H: stat malloc failed\n");
+        return false;
+    }
+
+    int statResult = stat(historyFile, info);
+    boolean exists = statResult>=0;
+    int oldLength = 0;
+    boolean valid = true;
+
+    if (exists) {
+        // 読取り専用・ディレクトリ・大きすぎるファイルは拒否する．
+        valid = (info.attr&0x11)==0 &&
+                info.lenH==0 &&
+                info.lenL>=0;
+
+        oldLength = info.lenL;
+    } else if (statResult!=ENOENT) {
+        // 「存在しない」以外のエラーを，新規作成扱いにしない．
+        valid = false;
+    }
+
+    free(info);
+
+    if (!valid) {
+        dbgPutStr("H: invalid target or stat failed\n");
+        return false;
+    }
+
+    // 区切り用と末尾用の改行を含め，計算結果を32767以内にする．
+    if (oldLength>32767-length-2) {
+        dbgPutStr("H: history too large\n");
+        return false;
+    }
+
+    char[] buffer = malloc(oldLength+length+2);
+
+    if (buffer==null) {
+        dbgPutStr("H: buffer malloc failed\n");
+        return false;
+    }
+
+    if (exists) {
+        int input = open(historyFile, READ_MODE);
+
+        if (input<0) {
+            dbgPutStr("H: read open failed\n");
+            free(buffer);
+            return false;
+        }
+
+        int received = read(input, buffer, oldLength);
+        int inputClose = close(input);
+
+        if (received!=oldLength || inputClose<0) {
+            dbgPutStr("H: read or close failed\n");
+            free(buffer);
+            return false;
+        }
+    }
+
+    // 不正な旧データを，黙って捨てたり正常扱いしたりしない．
+    for (int i=0; i<oldLength; i=i+1) {
+        if (buffer[i]=='\0' || buffer[i]=='\r') {
+            dbgPutStr("H: unsupported old data\n");
+            free(buffer);
+            return false;
+        }
+    }
+
+    int position = oldLength;
+
+    // 既存ファイルの末尾に改行がなくても，次のパスと連結しない．
+    if (position>0 && buffer[position-1]!='\n') {
+        buffer[position] = '\n';
+        position = position+1;
+    }
+
+    for (int j=0; j<length; j=j+1) {
+        buffer[position] = file[j];
+        position = position+1;
+    }
+
+    buffer[position] = '\n';
+    position = position+1;
+
+    if (!exists && creat(historyFile)<0) {
+        dbgPutStr("H: create failed\n");
+        free(buffer);
+        return false;
+    }
+
+    int output = open(historyFile, WRITE_MODE);
+
+    if (output<0) {
+        dbgPutStr("H: write open failed\n");
+        free(buffer);
+        return false;
+    }
+
+    int written = write(output, buffer, position);
+    int outputClose = close(output);
+
+    free(buffer);
+
+    if (written!=position || outputClose<0) {
+        dbgPutStr("H: write or close failed\n");
+        return false;
+    }
+
+    return true;
+}
+
+// AudioDecoderから呼び出す公開関数．
+public boolean recordPlayHistory(char[] file) {
+    return appendHistoryLine(HISTORY_FILE, file);
+}
+
+HistorySummary loadHistorySummary(char[] historyFile) {
+    if (historyFile==null || historyFile[0]=='\0') {
+        dbgPutStr("H: invalid history file\n");
+        return null;
+    }
+
+    HistorySummary summary = createHistorySummary();
+
+    if (summary==null) {
+        return null;
+    }
+
+    int source = open(historyFile, READ_MODE);
+
+    if (source<0) {
+        // ファイルがまだない場合は，正常な空の履歴として扱う．
+        if (source==ENOENT) {
+            return summary;
+        }
+
+        dbgPutStr("H: history open failed\n");
+        destroyHistorySummary(summary);
+        return null;
+    }
+
+    char[] line = malloc(256);
+    char[] block = malloc(64);
+
+    if (line==null || block==null) {
+        dbgPutStr("H: read buffer malloc failed\n");
+
+        if (line!=null) {
+            free(line);
+        }
+
+        if (block!=null) {
+            free(block);
+        }
+
+        int failedClose = close(source);
+
+        if (failedClose<0) {
+            dbgPutStr("H: history close failed\n");
+        }
+
+        destroyHistorySummary(summary);
+        return null;
+    }
+
+    boolean result = true;
+    boolean finished = false;
+    int length = 0;
+
+    while (result && !finished) {
+        int received = read(source, block, 64);
+
+        if (received<0) {
+            dbgPutStr("H: history read failed\n");
+            result = false;
+        } else if (received==0) {
+            finished = true;
+
+            // 最終行に改行がない場合も集計する．
+            if (length>0) {
+                line[length] = '\0';
+                result = addHistoryCount(summary, line);
+            }
+        } else {
+            for (int i=0; i<received && result; i=i+1) {
+                char c = block[i];
+
+                if (c=='\n') {
+                    // 空行は読み飛ばす．
+                    if (length>0) {
+                        line[length] = '\0';
+                        result = addHistoryCount(summary, line);
+                        length = 0;
+                    }
+                } else if (c=='\0' || c=='\r') {
+                    dbgPutStr("H: unsupported history character\n");
+                    result = false;
+                } else if (length>=255) {
+                    dbgPutStr("H: history path too long\n");
+                    result = false;
+                } else {
+                    line[length] = c;
+                    length = length+1;
+                }
+            }
+        }
+    }
+
+    if (close(source)<0) {
+        dbgPutStr("H: history close failed\n");
+        result = false;
+    }
+
+    free(line);
+    free(block);
+
+    if (!result) {
+        // 途中までできた集計結果は，正常な結果として返さない．
+        destroyHistorySummary(summary);
+        return null;
+    }
+
+    return summary;
+}
+
+void waitHistoryKeysReleased() {
+    int released = 0;
+
+    while (released<3) {
+        key_step();
+
+        if (key_read()==0) {
+            released = released+1;
+        } else {
+            released = 0;
+        }
+
+        sleep(10);
+    }
+}
+
+void drawHistoryScreen(HistorySummary summary, int cursor) {
+    cls();
+
+    locateXY(0, 0);
+    putStr("# HISTORY #");
+
+    locateXY(0, 7);
+    putStr("1:UP5:DN4:BACK");
+
+    if (summary==null) {
+        locateXY(0, 2);
+        putStr("Read failed");
+        return;
+    }
+
+    if (summary.count==0) {
+        locateXY(0, 2);
+        putStr("(empty)");
+        return;
+    }
+
+    if (summary.count<0 || cursor<0 || cursor>=summary.count) {
+        panic("H: invalid cursor");
+    }
+
+    int first = (cursor/3)*3;
+    HistoryEntry entry = summary.front;
+
+    for (int skip=0; skip<first; skip=skip+1) {
+        if (entry==null) {
+            panic("H: broken summary");
+        }
+
+        entry = entry.next;
+    }
+
+    for (int row=0; row<3 && first+row<summary.count; row=row+1) {
+        if (entry==null || entry.path==null || entry.playCount<=0) {
+            panic("H: broken entry");
+        }
+
+        int start = 0;
+
+        for (int i=0; entry.path[i]!='\0'; i=i+1) {
+            if (entry.path[i]=='/') {
+                start = i+1;
+            }
+        }
+
+        locateXY(0, 1+row*2);
+
+        if (first+row==cursor) {
+            putStr("*");
+        } else {
+            putStr(" ");
+        }
+
+        // 選択記号1文字＋ファイル名最大15文字．
+        for (int j=0; j<15 && entry.path[start+j]!='\0'; j=j+1) {
+            putCh(entry.path[start+j]);
+        }
+
+        locateXY(1, 2+row*2);
+        putStr("Count:");
+        putDec(entry.playCount, 1);
+
+        entry = entry.next;
+    }
+}
+
+void showHistoryFile(char[] path) {
+    HistorySummary summary = loadHistorySummary(path);
+    int cursor = 0;
+    boolean redraw = true;
+
+    waitHistoryKeysReleased();
+
+    for (;;) {
+        if (redraw) {
+            drawHistoryScreen(summary, cursor);
+            redraw = false;
+        }
+
+        key_step();
+
+        if (key_pressed(KEY_BACK)!=0) {
+            break;
+        }
+
+        if (summary!=null && summary.count>0) {
+            if (key_pressed(KEY_UP)!=0 && cursor>0) {
+                cursor = cursor-1;
+                redraw = true;
+            } else if (key_pressed(KEY_DOWN)!=0 &&
+                       cursor<summary.count-1) {
+                cursor = cursor+1;
+                redraw = true;
+            }
+        }
+
+        sleep(10);
+    }
+
+    if (summary!=null) {
+        destroyHistorySummary(summary);
+    }
+
+    waitHistoryKeysReleased();
+}
+
+// 本番Homeから呼び出す入口．
+public void showHistory() {
+    showHistoryFile(HISTORY_FILE);
+}
+
+#ifdef HISTORY_UNIT_TEST
+
+public void testHistoryViewer() {
+    char[] path = "/HUI_T.TXT";
+
+    // 既存ファイルは上書きしない．
+    if (creat(path)<0) {
+        dbgPutStr("H UI: cannot reserve HUI_T.TXT\n");
+        cls();
+        locateXY(0, 0);
+        putStr("UI SETUP FAILED");
+        return;
+    }
+
+    dbgPutStr("H UI: empty file; expect (empty)\n");
+    showHistoryFile(path);
+
+    // 読込み処理が拒否するCRを入れる．
+    int output = open(path, WRITE_MODE);
+    boolean prepared = false;
+
+    if (output>=0) {
+        int written = write(output, "\r", 1);
+        int closed = close(output);
+
+        prepared = written==1 && closed==0;
+    }
+
+    if (prepared) {
+        dbgPutStr("H UI: invalid file; expect Read failed\n");
+        showHistoryFile(path);
+    } else {
+        dbgPutStr("H UI: invalid fixture setup failed\n");
+    }
+
+    int removed = remove(path);
+
+    if (removed==0) {
+        dbgPutStr("H UI: missing file; expect (empty)\n");
+        showHistoryFile(path);
+    } else {
+        dbgPutStr("H UI: cleanup failed\n");
+    }
+
+    if (prepared && removed==0) {
+        dbgPutStr("H UI: sequence finished; verify screens manually\n");
+    }
+}
+
+boolean historyTestCheck(char[] name, boolean passed) {
+    if (passed) {
+        dbgPutStr("[OK] ");
+    } else {
+        dbgPutStr("[NG] ");
+    }
+
+    dbgPutStr(name);
+    dbgPutStr("\n");
+    return passed;
+}
+
+// actualは呼出し元が確保した64バイトの領域．
+boolean historyTestEquals(
+    char[] path,
+    char[] expected,
+    char[] actual
+) {
+    int input = open(path, READ_MODE);
+
+    if (input<0) {
+        dbgPutStr("H test: read open failed\n");
+        return false;
+    }
+
+    int received = read(input, actual, 63);
+    int closed = close(input);
+
+    if (received<0 || closed<0) {
+        dbgPutStr("H test: read or close failed\n");
+        return false;
+    }
+
+    actual[received] = '\0';
+
+    return received==strLen(expected) &&
+           strCmp(actual, expected)==0;
+}
+
+boolean testHistorySummary() {
+    dbgPutStr("--- History summary test ---\n");
+
+    HistorySummary summary = createHistorySummary();
+
+    if (summary==null) {
+        dbgPutStr("History summary test:FAIL\n");
+        return false;
+    }
+
+    boolean result = historyTestCheck(
+        "empty summary",
+        summary.count==0 &&
+        summary.front==null &&
+        summary.back==null
+    );
+
+    // "/MP3/TEST_A.MP3"の15文字と終端文字の領域．
+    char[] input = malloc(16);
+
+    if (input==null) {
+        dbgPutStr("H test: path buffer malloc failed\n");
+        destroyHistorySummary(summary);
+        dbgPutStr("History summary test:FAIL\n");
+        return false;
+    }
+
+    strCpy(input, "/MP3/TEST_A.MP3");
+
+    if (result) {
+        result = addHistoryCount(summary, input);
+
+        // 入力側のAをZへ変更し，保存済みパスに影響しないか確認する．
+        input[10] = 'Z';
+
+        if (result) {
+            result = summary.count==1 && summary.front!=null;
+
+            if (result) {
+                result =
+                    strCmp(summary.front.path, "/MP3/TEST_A.MP3")==0 &&
+                    summary.front.playCount==1;
+            }
+        }
+
+        historyTestCheck("input path copied", result);
+    }
+
+    if (result) {
+        result =
+            addHistoryCount(summary, "/MP3/TEST_B.MP3") &&
+            addHistoryCount(summary, "/mp3/test_a.mp3");
+
+        if (result) {
+            result = summary.count==2 &&
+                     summary.front!=null &&
+                     summary.back!=null;
+
+            if (result) {
+                result =
+                    summary.front!=summary.back &&
+                    summary.front.next==summary.back &&
+                    summary.back.next==null &&
+                    summary.front.playCount==2 &&
+                    summary.back.playCount==1 &&
+                    strCmp(summary.front.path, "/MP3/TEST_A.MP3")==0 &&
+                    strCmp(summary.back.path, "/MP3/TEST_B.MP3")==0;
+            }
+        }
+
+        historyTestCheck("counts, case folding and order", result);
+    }
+
+    free(input);
+    destroyHistorySummary(summary);
+
+    if (result) {
+        dbgPutStr("History summary test:PASS\n");
+    } else {
+        dbgPutStr("History summary test:FAIL\n");
+    }
+
+    return result;
+}
+
+boolean historyTestLoadedCounts(
+    char[] path,
+    int tracks,
+    int firstCount,
+    int lastCount
+) {
+    HistorySummary loaded = loadHistorySummary(path);
+
+    if (loaded==null) {
+        return false;
+    }
+
+    boolean matched = loaded.count==tracks;
+
+    if (tracks==0) {
+        matched = matched &&
+                  loaded.front==null &&
+                  loaded.back==null;
+    } else if (matched) {
+        matched = loaded.front!=null && loaded.back!=null;
+
+        if (matched) {
+            matched =
+                loaded.front.playCount==firstCount &&
+                loaded.back.playCount==lastCount &&
+                strCmp(loaded.front.path, "/MP3/TEST_A.MP3")==0;
+
+            if (matched && tracks==2) {
+                matched =
+                    strCmp(loaded.back.path, "/MP3/TEST_B.MP3")==0;
+            }
+        }
+    }
+
+    destroyHistorySummary(loaded);
+    return matched;
+}
+
+// このテスト自身が新規作成したファイルだけに使用する．
+boolean historyTestReplaceOwned(
+    char[] path,
+    char[] data,
+    int length
+) {
+    if (remove(path)<0) {
+        dbgPutStr("H test: fixture remove failed\n");
+        return false;
+    }
+
+    if (creat(path)<0) {
+        dbgPutStr("H test: fixture create failed\n");
+        return false;
+    }
+
+    int output = open(path, WRITE_MODE);
+
+    if (output<0) {
+        dbgPutStr("H test: fixture open failed\n");
+        return false;
+    }
+
+    int written = write(output, data, length);
+    int closed = close(output);
+
+    if (written!=length || closed<0) {
+        dbgPutStr("H test: fixture write failed\n");
+        return false;
+    }
+
+    return true;
+}
+
+boolean testHistoryReadEdges() {
+    char[] path = "/HREAD_T.TXT";
+
+    dbgPutStr("--- History read edge test ---\n");
+
+    if (creat(path)<0) {
+        dbgPutStr("H test: cannot reserve HREAD_T.TXT\n");
+        return false;
+    }
+
+    char[] data = malloc(274);
+
+    if (data==null) {
+        dbgPutStr("H test: edge buffer malloc failed\n");
+
+        if (remove(path)<0) {
+            dbgPutStr("H test: cleanup failed\n");
+        }
+
+        return false;
+    }
+
+    // 255文字・末尾改行なしのパスを作る．
+    data[0] = '/';
+
+    for (int i=1; i<255; i=i+1) {
+        data[i] = 'A';
+    }
+
+    data[255] = '\0';
+
+    boolean result = historyTestReplaceOwned(path, data, 255);
+
+    if (result) {
+        HistorySummary loaded = loadHistorySummary(path);
+
+        result = loaded!=null;
+
+        if (loaded!=null) {
+            result = loaded.count==1 && loaded.front!=null;
+
+            if (result) {
+                result =
+                    loaded.front.playCount==1 &&
+                    strCmp(loaded.front.path, data)==0;
+            }
+
+            destroyHistorySummary(loaded);
+        }
+    }
+
+    historyTestCheck(
+        "255-character path across read blocks",
+        result
+    );
+
+    if (result) {
+        result = appendHistoryLine(path, "/MP3/TEST_B.MP3");
+
+        if (result) {
+            HistorySummary appended = loadHistorySummary(path);
+
+            result = appended!=null;
+
+            if (appended!=null) {
+                result = appended.count==2 && appended.back!=null;
+
+                if (result) {
+                    result =
+                        appended.back.playCount==1 &&
+                        strCmp(appended.back.path,
+                               "/MP3/TEST_B.MP3")==0;
+                }
+
+                destroyHistorySummary(appended);
+            }
+        }
+
+        historyTestCheck("next line after long path", result);
+    }
+
+    // 正常な1行の後へ，不正なデータを配置する．
+    for (int kind=0; kind<3 && result; kind=kind+1) {
+        strCpy(data, "/MP3/TEST_A.MP3\n");
+
+        int size = 18;
+
+        if (kind==0) {
+            data[16] = '\0';
+            data[17] = '\n';
+        } else if (kind==1) {
+            data[16] = '\r';
+            data[17] = '\n';
+        } else {
+            for (int j=0; j<256; j=j+1) {
+                data[16+j] = 'A';
+            }
+
+            data[272] = '\n';
+            size = 273;
+        }
+
+        result = historyTestReplaceOwned(path, data, size);
+
+        if (result) {
+            HistorySummary invalid = loadHistorySummary(path);
+
+            result = invalid==null;
+
+            if (invalid!=null) {
+                destroyHistorySummary(invalid);
+            }
+        }
+
+        if (kind==0) {
+            historyTestCheck("NUL rejects partial result", result);
+        } else if (kind==1) {
+            historyTestCheck("CR rejects partial result", result);
+        } else {
+            historyTestCheck("256-character line rejected", result);
+        }
+    }
+
+    int cleanup = remove(path);
+    boolean cleaned = cleanup==0 || cleanup==ENOENT;
+
+    historyTestCheck("edge test cleanup", cleaned);
+
+    free(data);
+
+    result = result && cleaned;
+
+    if (result) {
+        dbgPutStr("History read edge test:PASS\n");
+    } else {
+        dbgPutStr("History read edge test:FAIL\n");
+    }
+
+    return result;
+}
+
+public boolean testHistory() {
+    if (!testHistoryReadEdges()) {
+        return false;
+    }
+    if (!testHistorySummary()) {
+        return false;
+    }
+    char[] path = "/HREC_TST.TXT";
+    char[] first = "/MP3/TEST_A.MP3";
+    char[] second = "/MP3/TEST_B.MP3";
+    char[] twice = "/MP3/TEST_A.MP3\n/MP3/TEST_A.MP3\n";
+
+    dbgPutStr("--- History record test ---\n");
+
+    // 既存ファイルは上書きしない．
+    // 新規作成できた場合だけ，今回のテスト用として使用する．
+    if (creat(path)<0) {
+        dbgPutStr("H test: cannot reserve file; inspect HREC_TST.TXT\n");
+        return false;
+    }
+
+    char[] actual = malloc(64);
+
+    if (actual==null) {
+        dbgPutStr("H test: malloc failed\n");
+
+        int allocationCleanup = remove(path);
+
+        if (allocationCleanup<0) {
+            dbgPutStr("H test: cleanup failed\n");
+        }
+
+        return false;
+    }
+
+    // 一度削除して，記録処理自身による新規作成を確認する．
+    boolean result = remove(path)==0;
+
+    if (result) {
+        result = historyTestCheck(
+            "load missing file as empty",
+            historyTestLoadedCounts(path, 0, 0, 0)
+        );
+    }
+
+    if (result) {
+        result = creat(path)==0;
+
+        if (result) {
+            result = historyTestCheck(
+                "load empty file",
+                historyTestLoadedCounts(path, 0, 0, 0)
+            );
+        }
+
+        if (result) {
+            result = remove(path)==0;
+        }
+    }
+
+    if (result) {
+        result = appendHistoryLine(path, first) &&
+                 historyTestEquals(
+                     path,
+                     "/MP3/TEST_A.MP3\n",
+                     actual
+                 );
+    }
+
+    historyTestCheck("create and record", result);
+
+    if (result) {
+        result = appendHistoryLine(path, first) &&
+                 historyTestEquals(path, twice, actual);
+
+        historyTestCheck("same track recorded twice", result);
+    }
+
+    if (result) {
+        result = historyTestCheck(
+            "load repeated track count",
+            historyTestLoadedCounts(path, 1, 2, 2)
+        );
+    }
+
+    if (result) {
+        result = !appendHistoryLine(path, "") &&
+                 historyTestEquals(path, twice, actual);
+
+        historyTestCheck(
+            "empty path rejected; file unchanged",
+            result
+        );
+    }
+
+    if (result) {
+        result = !appendHistoryLine(path, "/MP3/BAD\nNAME.MP3") &&
+                 historyTestEquals(path, twice, actual);
+
+        historyTestCheck(
+            "newline rejected; file unchanged",
+            result
+        );
+    }
+
+    if (result) {
+        // 末尾改行がないファイルを，テスト自身で準備する．
+        result = remove(path)==0;
+
+        if (result) {
+            result = creat(path)==0;
+        }
+
+        if (result) {
+            int output = open(path, WRITE_MODE);
+
+            if (output<0) {
+                result = false;
+            } else {
+                int written = write(output, first, strLen(first));
+                int closedOutput = close(output);
+
+                result = written==strLen(first) &&
+                         closedOutput==0;
+            }
+        }
+
+        if (result) {
+            result = historyTestCheck(
+                "load without final newline",
+                historyTestLoadedCounts(path, 1, 1, 1)
+            );
+        }
+
+        if (result) {
+            result = appendHistoryLine(path, second) &&
+                     historyTestEquals(
+                         path,
+                         "/MP3/TEST_A.MP3\n/MP3/TEST_B.MP3\n",
+                         actual
+                     );
+        }
+
+        historyTestCheck("append without final newline", result);
+    }
+
+    if (result) {
+        result = historyTestCheck(
+            "load two tracks in order",
+            historyTestLoadedCounts(path, 2, 1, 1)
+        );
+    }
+
+    int cleanup = remove(path);
+    boolean cleaned = cleanup==0 || cleanup==ENOENT;
+
+    historyTestCheck("test file cleanup", cleaned);
+
+    free(actual);
+
+    result = result && cleaned;
+
+    if (result) {
+        dbgPutStr("History record test:PASS\n");
+    } else {
+        dbgPutStr("History record test:FAIL\n");
+    }
+
+    return result;
+}
+
+#endif
