@@ -4,6 +4,8 @@
 #include <MP3Player.hmm>
 #include <list.hmm>
 #include <file_chooser.hmm>
+#include <Clock.hmm>
+#include <ClockViewer.hmm>
 
 #include "Playlist.hmm"
 #include "PlaylistViewer.hmm"
@@ -27,6 +29,7 @@ void waitPlaylistEditorKeysReleased() {
     int released = 0;
 
     while (released<3) {
+        if (isAlarmRinging()) return;
         key_step();
 
         if (key_read()==0) {
@@ -44,7 +47,7 @@ void drawPlaylistEditor(Playlist playlist, int cursor, char[] path) {
     int count = getPlaylistCount(playlist);
 
     if (count<0) {
-        panic("PL: invalid count");
+        panic("PV01");
     }
 
     for (int y=0; y<8; y=y+1) {
@@ -60,7 +63,7 @@ void drawPlaylistEditor(Playlist playlist, int cursor, char[] path) {
     }
 
     if (cursor<0 || cursor>=count) {
-        panic("PL: invalid cursor");
+        panic("PV02");
     }
 
     // カーソルを含む6曲分のページを表示する．
@@ -70,7 +73,7 @@ void drawPlaylistEditor(Playlist playlist, int cursor, char[] path) {
         int index = first+row;
 
         if (!getPlaylistFile(playlist, index, path, 256)) {
-            panic("PL: invalid path");
+            panic("PV03");
         }
 
         // 最後の '/' より後ろをファイル名として表示する．
@@ -103,7 +106,7 @@ void drawPlaylistEditor(Playlist playlist, int cursor, char[] path) {
 // この関数では確保・解放しない．
 boolean addPlaylistFileFromChooser(Playlist playlist, char[] path) {
     if (playlist==null) {
-        panic("PL: null playlist");
+        panic("PV04");
     }
 
     path[0] = '\0';
@@ -122,7 +125,7 @@ boolean addPlaylistFileFromChooser(Playlist playlist, char[] path) {
         (path[length-3]!='m' && path[length-3]!='M') ||
         (path[length-2]!='p' && path[length-2]!='P') ||
         path[length-1]!='3') {
-        dbgPutStr("PL: selected file is not MP3\n");
+        dbgPutStr("PV05\n");
         return false;
     }
 
@@ -134,7 +137,7 @@ boolean addPlaylistFileFromChooser(Playlist playlist, char[] path) {
         PL_TRACE(path);
         PL_TRACE("\n");
     } else {
-        dbgPutStr("PL: add failed\n");
+        dbgPutStr("PV06\n");
     }
 
     return added;
@@ -145,19 +148,19 @@ void openPlaylistEditorPlayer(Playlist playlist, int selected) {
     int count = getPlaylistCount(playlist);
 
     if (count<=0 || selected<0 || selected>=count) {
-        panic("PL: invalid playback index");
+        panic("PV07");
     }
 
     // ポインタ配列のサイズ計算で整数あふれを起こさない．
     if (count>16383) {
-        dbgPutStr("PL: too many files\n");
+        dbgPutStr("PV08\n");
         return;
     }
 
     char[][] files = malloc(count*2);
 
     if (files==null) {
-        dbgPutStr("PL: playback malloc failed\n");
+        dbgPutStr("PV09\n");
         return;
     }
 
@@ -165,7 +168,7 @@ void openPlaylistEditorPlayer(Playlist playlist, int selected) {
 
     for (int i=0; i<count; i=i+1) {
         if (item==null || item.path==null) {
-            panic("PL: broken list");
+            panic("PV10");
         }
 
         files[i] = item.path;
@@ -173,7 +176,7 @@ void openPlaylistEditorPlayer(Playlist playlist, int selected) {
     }
 
     if (item!=null) {
-        panic("PL: count mismatch");
+        panic("PV11");
     }
 
     PL_TRACE("PL: selected ");
@@ -195,9 +198,10 @@ boolean confirmPlaylistEditorExit(Playlist playlist, char[] playlistFile) {
     playlistExitChoices[1] = "Discard";
     playlistExitChoices[2] = "Cancel";
 
-    int choice = select("LEAVE PLAYLIST", playlistExitChoices, 3);
+    int choice = selectWithAlarm("LEAVE PLAYLIST", playlistExitChoices, 3);
 
-    if (choice==-1 || choice==2) {
+    // Alarm時は選択待ちを抜け，一覧の外側ループからClockを開く．
+    if (choice==-2 || choice==-1 || choice==2) {
         return false;
     }
 
@@ -206,7 +210,7 @@ boolean confirmPlaylistEditorExit(Playlist playlist, char[] playlistFile) {
     }
 
     if (choice!=0) {
-        panic("PL: invalid exit choice");
+        panic("PV12");
     }
 
     if (savePlaylist(playlist, playlistFile)) {
@@ -217,7 +221,7 @@ boolean confirmPlaylistEditorExit(Playlist playlist, char[] playlistFile) {
     }
 
     // 保存失敗時は編集内容を破棄せず，画面へ戻す．
-    dbgPutStr("PL: save failed; keeping edits\n");
+    dbgPutStr("PV13\n");
     lcd_draw_string(0, 0, "Save failed     ");
     sleep(1000);
 
@@ -226,19 +230,19 @@ boolean confirmPlaylistEditorExit(Playlist playlist, char[] playlistFile) {
 
 public void showPlaylistViewer(char[] playlistFile) {
     if (playlistFile==null || playlistFile[0]=='\0') {
-        dbgPutStr("PL: invalid file name\n");
+        dbgPutStr("PV14\n");
         return;
     }
 
     Playlist playlist = createPlaylist();
 
     if (playlist==null) {
-        dbgPutStr("PL: playlist malloc failed\n");
+        dbgPutStr("PV15\n");
         return;
     }
 
     if (!loadPlaylist(playlist, playlistFile)) {
-        dbgPutStr("PL: load failed\n");
+        dbgPutStr("PV16\n");
         destroyPlaylist(playlist);
         return;
     }
@@ -247,7 +251,7 @@ public void showPlaylistViewer(char[] playlistFile) {
     char[] path = malloc(256);
 
     if (path==null) {
-        dbgPutStr("PL: display malloc failed\n");
+        dbgPutStr("PV17\n");
         destroyPlaylist(playlist);
         return;
     }
@@ -258,10 +262,14 @@ public void showPlaylistViewer(char[] playlistFile) {
     waitPlaylistEditorKeysReleased();
 
     for (;;) {
+        if (showClockViewerIfAlarmRinging()) {
+            waitPlaylistEditorKeysReleased();
+            redraw = true;
+        }
         int count = getPlaylistCount(playlist);
 
         if (count<0) {
-            panic("PL: invalid count");
+            panic("PV01");
         }
 
         // 最後の曲を削除した場合などにカーソルを補正する．
@@ -272,7 +280,7 @@ public void showPlaylistViewer(char[] playlistFile) {
         }
 
         if (cursor<0) {
-            panic("PL: invalid cursor");
+            panic("PV02");
         }
 
         if (redraw) {
@@ -306,7 +314,7 @@ public void showPlaylistViewer(char[] playlistFile) {
             // ボタン3：カーソル位置の曲を削除する．
             if (count>0) {
                 if (!getPlaylistFile(playlist, cursor, path, 256)) {
-                    panic("PL: invalid deletion path");
+                    panic("PV18");
                 }
 
                 PL_TRACE("PL: removing ");
@@ -314,7 +322,7 @@ public void showPlaylistViewer(char[] playlistFile) {
                 PL_TRACE("\n");
 
                 if (!removePlaylistFile(playlist, cursor)) {
-                    panic("PL: removal failed");
+                    panic("PV19");
                 }
 
                 PL_TRACE("PL: removed\n");

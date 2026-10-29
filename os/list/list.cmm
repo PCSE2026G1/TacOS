@@ -2,6 +2,7 @@
 #include <util.hmm>
 #include "list.hmm"
 #include "lcd.h"
+#include <Clock.hmm>
 
 #define SW1 0x20
 #define SW2 0x10
@@ -99,10 +100,11 @@ int swToNum(int sw) {
 }
 
 
-public int select(char[] title, char[][] fnames, int size) {
+int selectInternal(char[] title, char[][] fnames, int size, boolean alarm) {
 
     // 呼び出し元で画面を開いたキー入力を，選択操作として二重に扱わない．
     while ((~in(0x18) & SWS) != 0) {
+        if (alarm && isAlarmRinging()) return -2;
         sleep(10);
     }
     sw0 = 0x00;
@@ -117,6 +119,7 @@ public int select(char[] title, char[][] fnames, int size) {
     int needsRedraw = 1;
 
     for (;;) {
+        if (alarm && isAlarmRinging()) return -2;
         int sw = readSw();
         int num = swToNum(sw);
 
@@ -169,4 +172,12 @@ public int select(char[] title, char[][] fnames, int size) {
         sleep(10);
     }
     return cursor;
+}
+
+public int select(char[] title, char[][] fnames, int size) {
+    return selectInternal(title, fnames, size, false);
+}
+
+public int selectWithAlarm(char[] title, char[][] fnames, int size) {
+    return selectInternal(title, fnames, size, true);
 }

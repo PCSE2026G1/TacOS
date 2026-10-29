@@ -467,6 +467,7 @@ void clockViewerChooseFile() {
   }
   free(clockViewerChosenFile);
   clockViewerLoadState();
+  if (clockViewerAlarmRinging) clockViewerItem = CLOCK_ITEM_ALARM;
   clockViewerDraw();
 }
 

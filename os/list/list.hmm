@@ -2,5 +2,7 @@
 #define LIST_HMM
 
 public int select(char[] title, char[][] fnames, int size);
+// -2はAlarm割込み．呼出し元で一覧資源を解放してから画面遷移する．
+public int selectWithAlarm(char[] title, char[][] fnames, int size);
 
 #endif

@@ -9,6 +9,7 @@
 #include "spi.hmm"
 #include "lcd.h"
 #include "mp3Files.hmm"
+#include <ClockViewer.hmm>
 
 char[] name = array(16);
 
@@ -129,7 +130,7 @@ void chooserFrom(char[] filename, char[] initial_path)
         }
 
 
-        int index = select(current_path, arr, size);
+        int index = selectWithAlarm(current_path, arr, size);
 
         // 戻るボタン．ルートではキャンセルし，それ以外では親へ移動する．
         if (index < 0) {
@@ -138,6 +139,17 @@ void chooserFrom(char[] filename, char[] initial_path)
             }
             free(arr);
             free(types);
+
+            // 選択中のパスを結果にせず，解放後にAlarm画面へ移る．
+            if (index == -2) {
+                // ClockのFileから開いた場合は，既存のClockへ戻す．
+                if (isClockViewerActive()) {
+                    free(current_path);
+                    return;
+                }
+                showClockViewerIfAlarmRinging();
+                continue;
+            }
 
             if (strCmp(current_path, initial_path) == 0) {
                 free(current_path);

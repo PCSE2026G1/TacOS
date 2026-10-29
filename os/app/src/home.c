@@ -9,6 +9,8 @@ extern const char PTR(PTR(home_titles_ptr));
 extern void PTR(sf_buf);
 extern void showPlaylistViewer(const char PTR(file));
 extern void showHistory(VOID);
+extern int selectWithAlarm(const char PTR(title), const char PTR(const PTR(fnames)), int size);
+extern int showClockViewerIfAlarmRinging(VOID);
 
 extern void home_show(VOID)
 {
@@ -19,7 +21,9 @@ extern void home_show(VOID)
         int size = size0;
         if (!COND(isMP3PlayerPlaying()))
             DEC(size);
-        int i = select("HOME", home_titles_ptr, size);
+        int i = selectWithAlarm("HOME", home_titles_ptr, size);
+        if (i == -2)
+            stacksafe(sf_buf, 512, INT_ADDR(showClockViewerIfAlarmRinging), 0);
         if (i >= 0)
             stacksafe(sf_buf, 512, home_functions_ptr[i], 0);
     }
