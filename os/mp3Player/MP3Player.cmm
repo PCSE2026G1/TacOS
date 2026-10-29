@@ -99,6 +99,7 @@ int playlistSelectionAfterFinish(int current, int count, boolean repeat,
   return next;
 }
 
+#ifdef MP3PLAYER_UNIT_TEST
 boolean printMP3PlayerTest(char[] name, boolean result) {
 #ifdef DEBUG
   if (result) printF("[OK] %s\n", name);
@@ -106,6 +107,7 @@ boolean printMP3PlayerTest(char[] name, boolean result) {
 #endif
   return result;
 }
+#endif
 
 boolean isCurrentExternalName(char[] name) {
   int start = 0;
@@ -449,6 +451,7 @@ void handleNaturalFinish(int count) {
   }
 }
 
+#ifdef MP3PLAYER_UNIT_TEST
 public boolean testMP3Player() {
   int count = countMP3Files();
   boolean result = true;
@@ -552,6 +555,7 @@ public boolean testMP3Player() {
 #endif
   return result;
 }
+#endif
 
 public void showMP3PlayerFile(char[] file) {
   if (file==null || file[0]=='\0') return;
@@ -621,6 +625,23 @@ public void showCurrentMP3Player() {
   if (!playerPlaying) clearPlaylistContext();
 }
 
+void waitPlayerKeysReleased() {
+    int released = 0;
+
+    while (released<3) {
+        // キー判定の内部状態も更新する．
+        key_step();
+
+        if (key_read()==0) {
+            released = released+1;
+        } else {
+            released = 0;
+        }
+
+        sleep(10);
+    }
+}
+
 public void showMP3Player(int type) {
   int count = countMP3Files();
   if (count>0) selectedFile = 1;
@@ -634,6 +655,8 @@ public void showMP3Player(int type) {
 
   if (playerMode==MP3PLAYER_LIST) drawListScreen();
   else drawInfoScreen();
+
+  waitPlayerKeysReleased();
 
   int refresh = 0;
   for (;;) {

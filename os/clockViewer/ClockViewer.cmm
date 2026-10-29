@@ -32,9 +32,13 @@ int clockViewerField = CLOCK_FIELD_HOUR;
 Time clockViewerNow = {1900, 1, 1, 0, 0, 0};
 Time clockViewerEditTime = {1900, 1, 1, 0, 0, 0};
 Time clockViewerAlarmTime = {1900, 1, 1, 7, 0, 0};
+
+#ifdef CLOCKVIEWER_API_TEST
 Time clockViewerTestNow = {2026, 12, 31, 23, 59, 30};
 Time clockViewerTestAlarm = {1900, 1, 1, 0, 0, 0};
 Time clockViewerTestLeap = {2028, 2, 28, 0, 0, 0};
+#endif
+
 boolean clockViewerAlarmPreviouslySet = false;
 boolean clockViewerAlarmRinging = false;
 boolean clockViewerActive = false;
@@ -321,6 +325,7 @@ void clockViewerToggleAlarm() {
   }
 }
 
+#ifdef CLOCKVIEWER_API_TEST
 boolean clockViewerTestResult(char[] name, boolean result) {
 #ifdef DEBUG
   if (result) printF("[OK] %s\n", name);
@@ -422,6 +427,7 @@ public boolean testClockViewer() {
 #endif
   return result;
 }
+#endif
 
 void clockViewerChooseFile() {
   clockViewerChosenFile[0] = '\0';

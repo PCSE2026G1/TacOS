@@ -1,0 +1,6 @@
+#ifndef PLAYLIST_VIEWER_HMM
+#define PLAYLIST_VIEWER_HMM
+
+public void showPlaylistViewer(char[] playlistFile);
+
+#endif

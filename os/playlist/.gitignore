@@ -1,0 +1,7 @@
+/tests/build/
+/pico.save
+*.o
+*.lst
+*.sym
+*.bin
+*.map
