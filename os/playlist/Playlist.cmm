@@ -264,12 +264,14 @@ public boolean getPlaylistFile(
 
 public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 	if (playlist==null || playlistFile==null) {
-		dbgPutStr("PS: null argument\n");
+		// dbgPutStr("PS: null argument\n");
+		dbgPutStr("PS01\n");
 		return false;
 	}
 
 	if (playlistFile[0]=='\0') {
-		dbgPutStr("PS: empty file name\n");
+		// dbgPutStr("PS: empty file name\n");
+		dbgPutStr("PS02\n");
 		return false;
 	}
 
@@ -282,13 +284,15 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 		}
 
 		if (strLen(item.path)>255) {
-			dbgPutStr("PS: path too long\n");
+			// dbgPutStr("PS: path too long\n");
+			dbgPutStr("PS03\n");
 			return false;
 		}
 
 		for (int i=0; item.path[i]!='\0'; i=i+1) {
 			if (item.path[i]=='\n' || item.path[i]=='\r') {
-				dbgPutStr("PS: newline in path\n");
+				// dbgPutStr("PS: newline in path\n");
+				dbgPutStr("PS04\n");
 				return false;
 			}
 		}
@@ -296,7 +300,8 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 		int lineLength = strLen(item.path)+1;
 
 		if (newLength>32767-lineLength) {
-			dbgPutStr("PL save: too large\n");
+			// dbgPutStr("PL save: too large\n");
+			dbgPutStr("PS05\n");
 			return false;
 		}
 
@@ -311,7 +316,8 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 		Stat info = malloc(sizeof(Stat));
 
 		if (info==null) {
-			dbgPutStr("PL save: stat malloc faild\n");
+			// dbgPutStr("PL save: stat malloc faild\n");
+			dbgPutStr("PS06\n");
 			return false;
 		}
 
@@ -329,18 +335,23 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 		free(info);
 
 		if (!valid) {
-			dbgPutStr("PL save: invalid target or stat faild\n");
+			// dbgPutStr("PL save: invalid target or stat faild\n");
+			dbgPutStr("PS07\n");
 			return false;
 		}
 	} else if (createResult<0) {
 		if (createResult==ENAME) {
-			dbgPutStr("PS: invalid file name\n");
+			// dbgPutStr("PS: invalid file name\n");
+			dbgPutStr("PS08\n");
 		} else if (createResult==EPATH) {
-			dbgPutStr("PS: invalid directory path\n");
+			// dbgPutStr("PS: invalid directory path\n");
+			dbgPutStr("PS09\n");
 		} else if (createResult==ENOSPC) {
-			dbgPutStr("PS: no free space or directory entry\n");
+			// dbgPutStr("PS: no free space or directory entry\n");
+			dbgPutStr("PS10\n");
 		} else {
-			dbgPutStr("PS: other create error\n");
+			// dbgPutStr("PS: other create error\n");
+			dbgPutStr("PS11\n");
 		}
 
 		return false;
@@ -349,7 +360,8 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 	int fd = open(playlistFile, WRITE_MODE);
 
 	if (fd<0) {
-		dbgPutStr("PS: open failed\n");
+		// dbgPutStr("PS: open failed\n");
+		dbgPutStr("PS12\n");
 		return false;
 	}
 
@@ -360,10 +372,12 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 		int length = strLen(item.path);
 
 		if (write(fd, item.path, length)!=length) {
-			dbgPutStr("PS: path write failed\n");
+			// dbgPutStr("PS: path write failed\n");
+			dbgPutStr("PS13\n");
 			result = false;
 		} else if (write(fd, "\n", 1)!=1) {
-			dbgPutStr("PS: newline write failed\n");
+			// dbgPutStr("PS: newline write failed\n");
+			dbgPutStr("PS14\n");
 			result = false;
 		}
 
@@ -380,7 +394,8 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 		}
 
 		if (write(fd, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",amount)!=amount) {
-			dbgPutStr("PL save: padding failed\n");
+			// dbgPutStr("PL save: padding failed\n");
+			dbgPutStr("PS15\n");
 			result = false;
 		} else {
 			remaining = remaining-amount;
@@ -388,7 +403,8 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 	}
 
 	if (close(fd)<0) {
-		dbgPutStr("PS: close failed\n");
+		// dbgPutStr("PS: close failed\n");
+		dbgPutStr("PS16\n");
 		result = false;
 	}
 	return result;
@@ -396,26 +412,26 @@ public boolean savePlaylist(Playlist playlist, char[] playlistFile) {
 
 public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
     if (playlist==null || playlistFile==null) {
-        dbgPutStr("LP: null argument\n");
+        dbgPutStr("LP01\n");
         return false;
     }
 
     if (playlistFile[0]=='\0') {
-        dbgPutStr("LP: empty file name\n");
+        dbgPutStr("LP02\n");
         return false;
     }
 
     int fd = open(playlistFile, READ_MODE);
 
     if (fd<0) {
-        dbgPutStr("LP: open failed\n");
+        dbgPutStr("LP03\n");
         return false;
     }
 
     Playlist temporary = createPlaylist();
 
     if (temporary==null) {
-        dbgPutStr("LP: playlist malloc failed\n");
+        dbgPutStr("LP04\n");
         close(fd);
         return false;
     }
@@ -423,7 +439,7 @@ public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
     char[] line = malloc(256);
 
     if (line==null) {
-        dbgPutStr("LP: line malloc failed\n");
+        dbgPutStr("LP05\n");
         destroyPlaylist(temporary);
         close(fd);
         return false;
@@ -432,7 +448,7 @@ public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
     char[] input = malloc(1);
 
     if (input==null) {
-        dbgPutStr("LP: input malloc failed\n");
+        dbgPutStr("LP06\n");
         free(line);
         destroyPlaylist(temporary);
         close(fd);
@@ -447,7 +463,7 @@ public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
         int received = read(fd, input, 1);
 
         if (received<0) {
-            dbgPutStr("LP: read failed\n");
+            dbgPutStr("LP07\n");
             result = false;
         } else if (received==0) {
             finished = true;
@@ -467,10 +483,10 @@ public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
                     length = 0;
                 }
             } else if (c=='\0' || c=='\r') {
-                dbgPutStr("LP: unsupported character\n");
+                dbgPutStr("LP08\n");
                 result = false;
             } else if (length>=255) {
-                dbgPutStr("LP: path too long\n");
+                dbgPutStr("LP09\n");
                 result = false;
             } else {
                 line[length] = c;
@@ -480,7 +496,7 @@ public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
     }
 
     if (close(fd)<0) {
-        dbgPutStr("LP: close failed\n");
+        dbgPutStr("LP10\n");
         result = false;
     }
 
@@ -488,7 +504,7 @@ public boolean loadPlaylist(Playlist playlist, char[] playlistFile) {
     free(line);
 
     if (!result) {
-        dbgPutStr("LP: failed; original kept\n");
+        dbgPutStr("LP11\n");
         destroyPlaylist(temporary);
         return false;
     }
