@@ -47,7 +47,7 @@ EMBSUBDIRS:=util kernel fs mm app file list audioDecoder clock mp3Player clockVi
 
 # ClockViewer単体テストではMP3Player画面と次曲監視は使用しない．
 # Alarmの音声出力にはaudioDecoderとapp/mp3Procを使用する．
-export CLOCKVIEWER_UNIT_TEST ?= 1
+export CLOCKVIEWER_UNIT_TEST ?= 0
 ifeq ($(CLOCKVIEWER_UNIT_TEST),1)
 EMBSUBDIRS:=$(filter-out mp3Player,$(EMBSUBDIRS))
 endif
