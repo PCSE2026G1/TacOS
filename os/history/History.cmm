@@ -29,7 +29,7 @@ HistorySummary createHistorySummary() {
     HistorySummary summary = malloc(sizeof(HistorySummary));
 
     if (summary==null) {
-        dbgPutStr("H: summary malloc failed\n");
+        dbgPutStr("H01\n");
         return null;
     }
 
@@ -84,7 +84,7 @@ boolean addHistoryCount(HistorySummary summary, char[] path) {
 
     while (length<256 && path[length]!='\0') {
         if (path[length]=='\n' || path[length]=='\r') {
-            dbgPutStr("H: invalid count path\n");
+            dbgPutStr("H02\n");
             return false;
         }
 
@@ -92,7 +92,7 @@ boolean addHistoryCount(HistorySummary summary, char[] path) {
     }
 
     if (length==0 || length>255) {
-        dbgPutStr("H: invalid count length\n");
+        dbgPutStr("H03\n");
         return false;
     }
 
@@ -101,7 +101,7 @@ boolean addHistoryCount(HistorySummary summary, char[] path) {
     while (entry!=null) {
         if (sameHistoryPath(entry.path, path)) {
             if (entry.playCount>=32767) {
-                dbgPutStr("H: play count overflow\n");
+                dbgPutStr("H04\n");
                 return false;
             }
 
@@ -113,21 +113,21 @@ boolean addHistoryCount(HistorySummary summary, char[] path) {
     }
 
     if (summary.count>=32767) {
-        dbgPutStr("H: too many tracks\n");
+        dbgPutStr("H05\n");
         return false;
     }
 
     HistoryEntry added = malloc(sizeof(HistoryEntry));
 
     if (added==null) {
-        dbgPutStr("H: entry malloc failed\n");
+        dbgPutStr("H06\n");
         return false;
     }
 
     char[] storedPath = malloc(length+1);
 
     if (storedPath==null) {
-        dbgPutStr("H: path malloc failed\n");
+        dbgPutStr("H07\n");
         free(added);
         return false;
     }
@@ -153,7 +153,7 @@ boolean addHistoryCount(HistorySummary summary, char[] path) {
 // テスト時には別の履歴ファイルも指定できる内部関数．
 boolean appendHistoryLine(char[] historyFile, char[] file) {
     if (historyFile==null || file==null) {
-        dbgPutStr("H: null argument\n");
+        dbgPutStr("H08\n");
         return false;
     }
 
@@ -161,7 +161,7 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
 
     while (length<256 && file[length]!='\0') {
         if (file[length]=='\n' || file[length]=='\r') {
-            dbgPutStr("H: newline in path\n");
+            dbgPutStr("H09\n");
             return false;
         }
 
@@ -169,14 +169,14 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
     }
 
     if (length==0 || length>255) {
-        dbgPutStr("H: invalid path length\n");
+        dbgPutStr("H10\n");
         return false;
     }
 
     Stat info = malloc(sizeof(Stat));
 
     if (info==null) {
-        dbgPutStr("H: stat malloc failed\n");
+        dbgPutStr("H11\n");
         return false;
     }
 
@@ -200,20 +200,20 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
     free(info);
 
     if (!valid) {
-        dbgPutStr("H: invalid target or stat failed\n");
+        dbgPutStr("H12\n");
         return false;
     }
 
     // 区切り用と末尾用の改行を含め，計算結果を32767以内にする．
     if (oldLength>32767-length-2) {
-        dbgPutStr("H: history too large\n");
+        dbgPutStr("H13\n");
         return false;
     }
 
     char[] buffer = malloc(oldLength+length+2);
 
     if (buffer==null) {
-        dbgPutStr("H: buffer malloc failed\n");
+        dbgPutStr("H14\n");
         return false;
     }
 
@@ -221,7 +221,7 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
         int input = open(historyFile, READ_MODE);
 
         if (input<0) {
-            dbgPutStr("H: read open failed\n");
+            dbgPutStr("H15\n");
             free(buffer);
             return false;
         }
@@ -230,7 +230,7 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
         int inputClose = close(input);
 
         if (received!=oldLength || inputClose<0) {
-            dbgPutStr("H: read or close failed\n");
+            dbgPutStr("H16\n");
             free(buffer);
             return false;
         }
@@ -239,7 +239,7 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
     // 不正な旧データを，黙って捨てたり正常扱いしたりしない．
     for (int i=0; i<oldLength; i=i+1) {
         if (buffer[i]=='\0' || buffer[i]=='\r') {
-            dbgPutStr("H: unsupported old data\n");
+            dbgPutStr("H17\n");
             free(buffer);
             return false;
         }
@@ -262,7 +262,7 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
     position = position+1;
 
     if (!exists && creat(historyFile)<0) {
-        dbgPutStr("H: create failed\n");
+        dbgPutStr("H18\n");
         free(buffer);
         return false;
     }
@@ -270,7 +270,7 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
     int output = open(historyFile, WRITE_MODE);
 
     if (output<0) {
-        dbgPutStr("H: write open failed\n");
+        dbgPutStr("H19\n");
         free(buffer);
         return false;
     }
@@ -281,7 +281,7 @@ boolean appendHistoryLine(char[] historyFile, char[] file) {
     free(buffer);
 
     if (written!=position || outputClose<0) {
-        dbgPutStr("H: write or close failed\n");
+        dbgPutStr("H20\n");
         return false;
     }
 
@@ -295,7 +295,7 @@ public boolean recordPlayHistory(char[] file) {
 
 HistorySummary loadHistorySummary(char[] historyFile) {
     if (historyFile==null || historyFile[0]=='\0') {
-        dbgPutStr("H: invalid history file\n");
+        dbgPutStr("H21\n");
         return null;
     }
 
@@ -313,7 +313,7 @@ HistorySummary loadHistorySummary(char[] historyFile) {
             return summary;
         }
 
-        dbgPutStr("H: history open failed\n");
+        dbgPutStr("H22\n");
         destroyHistorySummary(summary);
         return null;
     }
@@ -322,7 +322,7 @@ HistorySummary loadHistorySummary(char[] historyFile) {
     char[] block = malloc(64);
 
     if (line==null || block==null) {
-        dbgPutStr("H: read buffer malloc failed\n");
+        dbgPutStr("H23\n");
 
         if (line!=null) {
             free(line);
@@ -335,7 +335,7 @@ HistorySummary loadHistorySummary(char[] historyFile) {
         int failedClose = close(source);
 
         if (failedClose<0) {
-            dbgPutStr("H: history close failed\n");
+            dbgPutStr("H24\n");
         }
 
         destroyHistorySummary(summary);
@@ -350,7 +350,7 @@ HistorySummary loadHistorySummary(char[] historyFile) {
         int received = read(source, block, 64);
 
         if (received<0) {
-            dbgPutStr("H: history read failed\n");
+            dbgPutStr("H25\n");
             result = false;
         } else if (received==0) {
             finished = true;
@@ -372,10 +372,10 @@ HistorySummary loadHistorySummary(char[] historyFile) {
                         length = 0;
                     }
                 } else if (c=='\0' || c=='\r') {
-                    dbgPutStr("H: unsupported history character\n");
+                    dbgPutStr("H26\n");
                     result = false;
                 } else if (length>=255) {
-                    dbgPutStr("H: history path too long\n");
+                    dbgPutStr("H27\n");
                     result = false;
                 } else {
                     line[length] = c;
@@ -386,7 +386,7 @@ HistorySummary loadHistorySummary(char[] historyFile) {
     }
 
     if (close(source)<0) {
-        dbgPutStr("H: history close failed\n");
+        dbgPutStr("H24\n");
         result = false;
     }
 

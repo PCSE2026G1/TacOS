@@ -12,6 +12,12 @@
 #include <key.h>
 #include <lcd.h>
 
+#ifdef PLAYLIST_TRACE
+#define PL_TRACE(message) dbgPutStr(message)
+#else
+#define PL_TRACE(message)
+#endif
+
 // この画面を操作するプロセスだけが使用する．
 char[] playlistEditorLabel = array(15);
 char[][] playlistExitChoices = array(3);
@@ -105,7 +111,7 @@ boolean addPlaylistFileFromChooser(Playlist playlist, char[] path) {
 
     // FileChooserはキャンセル・内部エラーとも空文字列で戻り得る．
     if (path[0]=='\0') {
-        dbgPutStr("PL: no file selected\n");
+        PL_TRACE("PL: no file selected\n");
         return false;
     }
 
@@ -124,9 +130,9 @@ boolean addPlaylistFileFromChooser(Playlist playlist, char[] path) {
     boolean added = addPlaylistFile(playlist, path);
 
     if (added) {
-        dbgPutStr("PL: added ");
-        dbgPutStr(path);
-        dbgPutStr("\n");
+        PL_TRACE("PL: added ");
+        PL_TRACE(path);
+        PL_TRACE("\n");
     } else {
         dbgPutStr("PL: add failed\n");
     }
@@ -170,9 +176,9 @@ void openPlaylistEditorPlayer(Playlist playlist, int selected) {
         panic("PL: count mismatch");
     }
 
-    dbgPutStr("PL: selected ");
-    dbgPutStr(files[selected]);
-    dbgPutStr("\n");
+    PL_TRACE("PL: selected ");
+    PL_TRACE(files[selected]);
+    PL_TRACE("\n");
 
     // MP3Player側でパスをコピーして保持する．
     showMP3PlayerPlaylist(files, count, selected);
@@ -180,7 +186,7 @@ void openPlaylistEditorPlayer(Playlist playlist, int selected) {
     // ここでは配列だけを解放する．各パスはPlaylistの所有物．
     free(files);
 
-    dbgPutStr("PL: returned to list\n");
+    PL_TRACE("PL: returned to list\n");
 }
 
 // trueなら画面を終了し，falseなら編集画面へ戻る．
@@ -204,9 +210,9 @@ boolean confirmPlaylistEditorExit(Playlist playlist, char[] playlistFile) {
     }
 
     if (savePlaylist(playlist, playlistFile)) {
-        dbgPutStr("PL: saved");
-        dbgPutStr(playlistFile);
-        dbgPutStr("\n");
+        PL_TRACE("PL: saved");
+        PL_TRACE(playlistFile);
+        PL_TRACE("\n");
         return true;
     }
 
@@ -303,15 +309,15 @@ public void showPlaylistViewer(char[] playlistFile) {
                     panic("PL: invalid deletion path");
                 }
 
-                dbgPutStr("PL: removing ");
-                dbgPutStr(path);
-                dbgPutStr("\n");
+                PL_TRACE("PL: removing ");
+                PL_TRACE(path);
+                PL_TRACE("\n");
 
                 if (!removePlaylistFile(playlist, cursor)) {
                     panic("PL: removal failed");
                 }
 
-                dbgPutStr("PL: removed\n");
+                PL_TRACE("PL: removed\n");
                 redraw = true;
             }
         } else if (key_pressed(KEY_ENTER)!=0) {
@@ -338,5 +344,5 @@ public void showPlaylistViewer(char[] playlistFile) {
     free(path);
     destroyPlaylist(playlist);
 
-    dbgPutStr("PL: returned to Home\n");
+    PL_TRACE("PL: returned to Home\n");
 }

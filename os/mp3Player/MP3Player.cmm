@@ -5,6 +5,7 @@
 #include <Clock.hmm>
 #include <mp3Proc.hmm>
 #include <fs.hmm>
+#include <file_chooser.hmm>
 
 #define CMMDEF
 #include "key.h"
@@ -17,9 +18,6 @@
 #define MIN_PLAYER_SPEED 25
 #define MAX_PLAYER_SPEED 200
 
-int selectedFile = 1;
-int playingFile = 0;
-int playerMode = MP3PLAYER_LIST;
 int playerSelectedItem = 0;
 boolean playerPlaying = false;
 boolean playerRepeat = false;
@@ -42,6 +40,7 @@ char[] shuffleCandidate = array(16);
 #define PLAYER_ITEM_SHUFFLE 4
 #define PLAYER_ITEM_COUNT 5
 
+#ifdef MP3PLAYER_UNIT_TEST
 int countMP3Files() {
   int count = 0;
   for (int i=1; i<=MAX_MP3_FILES; i=i+1) {
@@ -49,7 +48,9 @@ int countMP3Files() {
   }
   return count;
 }
+#endif
 
+#ifdef MP3PLAYER_UNIT_TEST
 int nextSelection(int selected, int direction, int count) {
   if (count<=0) return 0;
   selected = selected+direction;
@@ -57,6 +58,7 @@ int nextSelection(int selected, int direction, int count) {
   if (selected>count) selected = 1;
   return selected;
 }
+#endif
 
 int clampVolume(int volume) {
   if (volume<0) return 0;
@@ -70,6 +72,7 @@ int clampSpeed(int speed) {
   return speed;
 }
 
+#ifdef MP3PLAYER_UNIT_TEST
 int shuffleSelection(int current, int count, int randomValue) {
   if (count<=0) return 0;
   if (count==1) return 1;
@@ -78,7 +81,9 @@ int shuffleSelection(int current, int count, int randomValue) {
   if (selected==current) selected = selected%count+1;
   return selected;
 }
+#endif
 
+#ifdef MP3PLAYER_UNIT_TEST
 int selectionAfterFinish(int current, int count, boolean repeat,
                          boolean shuffle, int randomValue) {
   if (count<=0) return 0;
@@ -86,6 +91,7 @@ int selectionAfterFinish(int current, int count, boolean repeat,
   if (shuffle) return shuffleSelection(current, count, randomValue);
   return 0;
 }
+#endif
 
 /* Playlistでは添字が0から始まる．Repeat／Shuffleの次曲を決める． */
 int playlistSelectionAfterFinish(int current, int count, boolean repeat,
@@ -168,36 +174,9 @@ void putShortPath(char[] path) {
   }
 }
 
-void drawListScreen() {
-  int count = countMP3Files();
-  cls();
-  locateXY(0, 0); putStr("# FILES #");
 
-  if (count==0) {
-    locateXY(1, 3); putStr("No MP3 files");
-  } else {
-    for (int i=1; i<=count; i=i+1) {
-      locateXY(0, i);
-      if (i==selectedFile) putCh('*');
-      else putCh(' ');
-      putCh(' ');
-      putStr(mp3FilesGetName(i));
-    }
-  }
 
-  locateXY(0, 7); putStr("ENT:Play BACK:Home");
-}
 
-void drawPlayerBar(int value, int maximum) {
-  int count = 0;
-  if (maximum>0) count = value*16/maximum;
-  if (count<0) count = 0;
-  if (count>16) count = 16;
-  for (int i=0; i<16; i=i+1) {
-    if (i<count) putCh('#');
-    else putCh('-');
-  }
-}
 
 void drawPlayerMark(int item) {
   if (playerSelectedItem==item) putCh('*');
@@ -209,17 +188,15 @@ void drawInfoScreen() {
   locateXY(0, 0);
   if (playerSourcePlaylist) putStr("P:");
   else if (externalFileSelected) putStr("F:");
-  if (externalFileSelected && playingFile==0) {
+  if (externalFileSelected) {
     putShortPath(externalFile);
-  } else if (playingFile>0 && mp3FilesGetName(playingFile)!=null) {
-    putStr(mp3FilesGetName(playingFile));
   } else {
     putStr("Not playing");
   }
 
   locateXY(0, 1); drawPlayerMark(PLAYER_ITEM_TIME); putStr(" Time ");
   /* getTotalTime()が未実装なので，誤った進捗率は表示しない． */
-  locateXY(0, 2); drawPlayerBar(0, 16);
+  locateXY(0, 2); putStr("----------------");
   locateXY(0, 3); drawPlayerMark(PLAYER_ITEM_VOLUME); putStr(" volume:");
   locateXY(0, 4); drawPlayerMark(PLAYER_ITEM_SPEED); putStr(" speed:");
   locateXY(0, 5); drawPlayerMark(PLAYER_ITEM_REPEAT); putStr(" Repeat:");
@@ -268,39 +245,14 @@ void updateInfoValues() {
   locateXY(8, 4); putDec(getSpeed(), 3); putCh('%'); putStr("  ");
 }
 
-void playSelectedFile() {
-  char[] path = mp3FilesGetPath(selectedFile);
-  if (path==null) return;
 
-  if (playerSourcePlaylist) {
-    playerPlaying = false;
-    clearPlaylistContext();
-  }
-  playerPlaying = false;
-  if (MP3playfile(path, true)) {
-    externalFileSelected = false;
-    playingFile = selectedFile;
-    playerPlaying = true;
-    playerMode = MP3PLAYER_INFO;
-    if (playerInfoVisible) drawInfoScreen();
-#ifdef DEBUG
-    printF("MP3Player play=%s state=%d\n", path, getPlaybackState());
-#endif
-  } else {
-#ifdef DEBUG
-    printF("MP3Player play failed=%s\n", path);
-#endif
-  }
-}
 
 void playExternalFile() {
   if (externalFile[0]=='\0') return;
   playerPlaying = false;
   if (MP3playfile(externalFile, true)) {
-    playingFile = 0;
     playerPlaying = true;
     externalFileSelected = true;
-    playerMode = MP3PLAYER_INFO;
     if (playerInfoVisible) drawInfoScreen();
   }
 }
@@ -326,10 +278,8 @@ void togglePlayerFile() {
     stopPlayerFile();
     return;
   }
-
-  if (playingFile>0) selectedFile = playingFile;
   if (externalFileSelected) playExternalFile();
-  else playSelectedFile();
+  else dbgPutStr("MP: no file\n");
 }
 
 void changePlayerItem(int difference) {
@@ -398,7 +348,7 @@ void changeSelectedPlayerValue(int difference) {
   }
 }
 
-void handleNaturalFinish(int count) {
+void handleNaturalFinish() {
   if (!playerPlaying || getPlaybackState()!=MP3_STATE_FINISHED) return;
 
   if (playerSourcePlaylist) {
@@ -428,28 +378,7 @@ void handleNaturalFinish(int count) {
     return;
   }
 
-  int finishedFile = playingFile;
-  int nextFile = selectionAfterFinish(finishedFile, count,
-                                      playerRepeat, playerShuffle, rand());
-  playerPlaying = false;
-
-#ifdef DEBUG
-  printF("MP3Player natural end=%d\n", finishedFile);
-#endif
-
-  if (nextFile>0) {
-    selectedFile = nextFile;
-#ifdef DEBUG
-    if (playerRepeat) printF("MP3Player repeat=%d\n", nextFile);
-    else printF("MP3Player shuffle=%d->%d\n", finishedFile, nextFile);
-#endif
-    playSelectedFile();
-  } else {
-    if (playerInfoVisible) {
-      drawInfoScreen();
-      updateInfoValues();
-    }
-  }
+  panic("MP: invalid source");
 }
 
 #ifdef MP3PLAYER_UNIT_TEST
@@ -593,7 +522,7 @@ public boolean isMP3PlayerPlaying() {
 }
 
 public void mp3PlayerTick() {
-  handleNaturalFinish(countMP3Files());
+  handleNaturalFinish();
 }
 
 public void MP3PlayerInit() {
@@ -651,85 +580,41 @@ void waitPlayerKeysReleased() {
 }
 
 public void showMP3Player(int type) {
-  int count = countMP3Files();
-  if (count>0) selectedFile = 1;
-  else selectedFile = 0;
-
-  if (type==MP3PLAYER_INFO) playerMode = MP3PLAYER_INFO;
-  else playerMode = MP3PLAYER_LIST;
-  playerInfoVisible = playerMode==MP3PLAYER_INFO;
+  if (type==MP3PLAYER_LIST) {
+    char[] chosen = malloc(256);
+    if (chosen==null) {
+      dbgPutStr("MP: chooser malloc\n");
+      return;
+    }
+    chosen[0] = '\0';
+    chooserMp3(chosen);
+    if (chosen[0]!='\0') showMP3PlayerFile(chosen);
+    free(chosen);
+    return;
+  }
+  if (type!=MP3PLAYER_INFO) panic("MP: invalid screen");
+  playerInfoVisible = true;
   playerSelectedItem = PLAYER_ITEM_TIME;
   srand(getPosition()+1);
-
-  if (playerMode==MP3PLAYER_LIST) drawListScreen();
-  else drawInfoScreen();
-
+  drawInfoScreen();
   waitPlayerKeysReleased();
-
   int refresh = 0;
   for (;;) {
     key_step();
-    if (playerMode==MP3PLAYER_LIST) {
-      if (key_pressed(KEY_UP)!=0) {
-        selectedFile = nextSelection(selectedFile, -1, count);
-        drawListScreen();
-#ifdef DEBUG
-        printF("MP3Player key=UP selected=%d\n", selectedFile);
-#endif
-      } else if (key_pressed(KEY_DOWN)!=0) {
-        selectedFile = nextSelection(selectedFile, 1, count);
-        drawListScreen();
-#ifdef DEBUG
-        printF("MP3Player key=DOWN selected=%d\n", selectedFile);
-#endif
-      } else if (key_pressed(KEY_ENTER)!=0 && count>0) {
-        playSelectedFile();
-        if (playerMode==MP3PLAYER_INFO) {
-          playerInfoVisible = true;
-          drawInfoScreen();
-          updateInfoValues();
-        }
-      } else if (key_pressed(KEY_RIGHT)!=0) {
-        playerMode = MP3PLAYER_INFO;
-        playerInfoVisible = true;
-        drawInfoScreen();
-        updateInfoValues();
-#ifdef DEBUG
-        printF("MP3Player screen=INFO\n");
-#endif
-      } else if (key_pressed(KEY_BACK)!=0) {
-        playerInfoVisible = false;
-        return;
-      }
-    } else {
-      if (key_pressed(KEY_UP)!=0) {
-        changePlayerItem(-1);
-      } else if (key_pressed(KEY_DOWN)!=0) {
-        changePlayerItem(1);
-      } else if (key_pressed(KEY_LEFT)!=0) {
-        changeSelectedPlayerValue(-1);
-      } else if (key_pressed(KEY_RIGHT)!=0) {
-        changeSelectedPlayerValue(1);
-      } else if (key_pressed(KEY_ENTER)!=0) {
-        togglePlayerFile();
-        drawInfoScreen();
-        updateInfoValues();
-      } else if (key_pressed(KEY_BACK)!=0) {
-        if (playerInfoReturnsToCaller) {
-          playerInfoVisible = false;
-          return;
-        }
-        playerMode = MP3PLAYER_LIST;
-        playerInfoVisible = false;
-        drawListScreen();
-#ifdef DEBUG
-        printF("MP3Player screen=LIST\n");
-#endif
-      }
+    if (key_pressed(KEY_UP)!=0) changePlayerItem(-1);
+    else if (key_pressed(KEY_DOWN)!=0) changePlayerItem(1);
+    else if (key_pressed(KEY_LEFT)!=0) changeSelectedPlayerValue(-1);
+    else if (key_pressed(KEY_RIGHT)!=0) changeSelectedPlayerValue(1);
+    else if (key_pressed(KEY_ENTER)!=0) {
+      togglePlayerFile();
+      drawInfoScreen();
+      updateInfoValues();
+    } else if (key_pressed(KEY_BACK)!=0) {
+      playerInfoVisible = false;
+      return;
     }
-
     refresh = refresh+1;
-    if (playerMode==MP3PLAYER_INFO && refresh>=25) {
+    if (refresh>=25) {
       updateInfoValues();
       refresh = 0;
     }

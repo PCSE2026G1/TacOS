@@ -7,6 +7,8 @@
 extern FPTR(void, PTR(home_functions_ptr));
 extern const char PTR(PTR(home_titles_ptr));
 extern void PTR(sf_buf);
+extern void showPlaylistViewer(const char PTR(file));
+extern void showHistory(VOID);
 
 extern void home_show(VOID)
 {
@@ -36,6 +38,12 @@ extern void mp3_show_files(VOID)
 
 extern void mp3_show_playlists(VOID)
 {
-    lcd_draw_string(0, 0, "mp3_show_playlists: stubbed");
-    sleep(1000);
+    // lcd_draw_string(0, 0, "mp3_show_playlists: stubbed");
+    // sleep(1000);
+    showPlaylistViewer("/PLPLAY.TXT");
+}
+
+extern void mp3_show_history(VOID)
+{
+    showHistory();
 }
