@@ -1,0 +1,12 @@
+#ifndef CLOCK_VIEWER_HMM
+#define CLOCK_VIEWER_HMM
+
+public void showClockViewer();
+public boolean isClockViewerActive();
+public boolean showClockViewerIfAlarmRinging();
+
+#ifdef CLOCKVIEWER_API_TEST
+public boolean testClockViewer();
+#endif
+
+#endif

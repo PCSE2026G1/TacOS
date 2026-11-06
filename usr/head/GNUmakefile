@@ -30,7 +30,7 @@ NAME=head
 SRCS=${NAME}.cmm
 #----------------------------------------------------------------------------
 
-all : clean ${NAME}.exe ${NAME}
+all : ${NAME}.exe ${NAME}
 
 ${NAME}.exe : ${SRCS}
 	cm2e -o ${NAME} ${SRCS}

@@ -1,0 +1,62 @@
+#include "file_manager.hmm"
+#include "fs.hmm"
+
+char[] buf = array(32);
+
+
+// ファイル名をコピー
+int cpFileName(char[] name, int i, int j, int n)
+{
+    for (; i < n; i = i + 1) {
+        if (buf[i] == ' ')
+            break;
+
+        name[j] = buf[i];
+        j = j + 1;
+    }
+
+    return j;
+}
+
+
+public int file_read_dir(int fd, char[] name)
+{
+    while (read(fd, buf, 32) == 32) {
+
+        char flag = buf[0];
+        int attr = ord(buf[11]);
+
+
+        // ディレクトリ終端
+        if (flag == '\x00')
+            return 2;
+        // 無効なエントリは読み飛ばす
+        if (flag == '\xe5')
+            continue;
+        // ボリュームラベル・特殊エントリなどは読み飛ばす
+        if ((attr & 0x0a) != 0)
+            continue;
+
+
+        int j = 0;
+        j = cpFileName(name, 0, j, 8);
+        if (buf[8] != ' ') {
+            name[j] = '.';
+            j = j + 1;
+            j = cpFileName(name, 8, j, 11);
+        }
+        name[j] = '\0';
+
+
+        // 0x05 は SJIS の 0xe5 に戻す
+        if (flag == '\x05')
+            name[0] = '\xe5';
+        // ディレクトリ
+        if ((attr & 0x10) != 0)
+            return 1;
+        // ファイル
+        return 0;
+    }
+    // EOF
+    return 2;
+}

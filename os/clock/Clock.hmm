@@ -1,0 +1,25 @@
+#ifndef CLOCK_HMM
+#define CLOCK_HMM
+
+#include "Time.hmm"
+
+public void getTime(Time time);
+public boolean setTime(Time time);
+
+public void getAlarm(Time time);
+public boolean setAlarm(Time time);
+public boolean isAlarmSet();
+public void clearAlarm();
+public boolean isAlarmRinging();
+public void stopAlarm();
+
+public char[] getFile();
+public boolean setFile(char[] file);
+
+public boolean setTimer(Time time);
+public void getTimer(Time time);
+
+public void clockMain();
+public void ClockInit();
+
+#endif

@@ -38,8 +38,11 @@ SUBDIRS:=ar cat cp dump echo edit fsize hello in ls mkdir mv out rm rmdir \
         tail version
 # port
 
-all :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
+all : $(SUBDIRS)
+
+.PHONY: $(SUBDIRS)
+$(SUBDIRS):
+	$(MAKE) -C $@
 
 clean :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) clean; )

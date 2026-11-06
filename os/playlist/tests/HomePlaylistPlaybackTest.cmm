@@ -1,0 +1,11 @@
+#include <util.hmm>
+
+#include "../PlaylistViewer.hmm"
+
+public void mp3_show_playlists() {
+    dbgPutStr("--- Playlist playback integration test ---\n");
+
+    showPlaylistViewer("/PLPLAY.TXT");
+
+    dbgPutStr("Playlist playback test: returned to Home\n");
+}

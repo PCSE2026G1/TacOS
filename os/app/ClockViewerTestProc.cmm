@@ -1,0 +1,41 @@
+#include <kernel.hmm>
+#include <util.hmm>
+#include <Clock.hmm>
+#include <AudioDecoder.hmm>
+#include <ClockViewer.hmm>
+
+#include "lcd.hmm"
+#include "spi.hmm"
+#include "mp3Files.hmm"
+#include "shellProc.hmm"
+
+Time clockViewerInitialTime = {2026, 12, 31, 23, 59, 50};
+
+public void shellMain() {
+  char[] alarmFile;
+
+  spiResetLcd();
+  spiResetMp3();
+  mp3FilesInit();
+  setVolume(40);
+
+  alarmFile = mp3FilesGetPath(1);
+  if (alarmFile!=null) setFile(alarmFile);
+  setTime(clockViewerInitialTime);
+
+  testClockViewer();
+
+#ifdef DEBUG
+  printF("--- ClockViewer hardware test ---\n");
+  if (alarmFile!=null) printF("alarm file=%s\n", alarmFile);
+  else printF("alarm file:null\n");
+  printF("Initial time=2026/12/31 23:59:50\n");
+  printF("Edit Y/M/D/H/M and set Alarm 00:00\n");
+  printF("After ringing ENT on Alarm must stop it\n");
+  printF("File: ENT opens /MP3 chooser\n");
+  printF("Chooser: SW1 up SW5 down SW6 select SW4 back\n");
+  printF("Cancel keeps file; select changes alarm file\n");
+#endif
+
+  showClockViewer();
+}

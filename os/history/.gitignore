@@ -1,0 +1,6 @@
+/tests/build/
+*.o
+*.lst
+*.sym
+*.bin
+*.map

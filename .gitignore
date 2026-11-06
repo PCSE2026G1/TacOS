@@ -1,4 +1,14 @@
-.DS_Store
+*
+!*/
+!?*.*
+!*Makefile*
+!*makefile*
+.*
+!.gitignore
+*.exe
+/uSD
+/usr/spitest/font.cmm
+
 *~
 *.map
 *.o
@@ -7,3 +17,5 @@
 *.dSYM
 *.lock
 *.bin
+*.png
+*.svg

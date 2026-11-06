@@ -29,7 +29,7 @@ NAME=spitest
 SRCS=${NAME}.cmm util.cmm font.cmm
 #----------------------------------------------------------------------------
 
-all : clean ${NAME}.exe #${NAME}
+all : ${NAME}.exe #${NAME}
 
 font.cmm : font8x8.c font8x8_basic.h
 	cc -o font8x8 font8x8.c

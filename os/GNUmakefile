@@ -31,6 +31,9 @@
 # 2011.11.27 : MacOS X に対応(cpp 問題)
 # 2011.05.11 : 初期バージョン
 
+# デバッグモードをONにしてデバッグメッセージがをシリアルに出力したいときは
+#   util/util.cmm の最後にある utilInit 関数内で "ftFlag = true;" とすること
+#   標準では Bluetooth だけにデバッグメッセージが出力される．
 # デバッグモードをOFFにするときは
 #   kernel/dispatcher.s 中のprintFを呼び出す部分をコメントアウトすること
 #DEBUG=DEBUG=1
@@ -40,11 +43,18 @@ MAKEFLAGS=--no-print-directory
 
 # make 対象のサブディレクトリ crt0 が含まれる util を最初にすること！！
 GENSUBDIRS:=util kernel fs sio tty mm pm     # 汎用カーネル
-EMBSUBDIRS:=util kernel fs mm app            # 組み込みカーネル
+EMBSUBDIRS:=util kernel fs mm app file list audioDecoder clock mp3Player clockViewer playlist history # 組み込みカーネル
+
+# ClockViewer単体テストではMP3Player画面と次曲監視は使用しない．
+# Alarmの音声出力にはaudioDecoderとapp/mp3Procを使用する．
+export CLOCKVIEWER_UNIT_TEST ?= 0
+ifeq ($(CLOCKVIEWER_UNIT_TEST),1)
+EMBSUBDIRS:=$(filter-out mp3Player,$(EMBSUBDIRS))
+endif
 
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 GENOBJS=$(foreach dir, $(GENSUBDIRS), $(dir)/mod.o )
-EMBOBJS=$(foreach dir, $(EMBSUBDIRS), $(dir)/mod.o )
+EMBOBJS=$(foreach dir, $(EMBSUBDIRS), $(dir)/mod_0.o )
 
 
 # clean を実行した後 kernel.bin を実行
@@ -58,15 +68,17 @@ clean : clean1 clean0
 # (3) kernel.o のサイズを表示
 # (4) kernel.o を 0x0000 番地にロードした kernel.bin を生成
 # (5) メモリマップを kernel.map に格納
-kernel.bin : clean1
-	$(foreach dir,$(GENSUBDIRS),${MAKE} ${DEBUG} --directory=$(dir);)
+.PHONY: kernel.bin
+kernel.bin :
+	for dir in $(GENSUBDIRS); do $(MAKE) $(DEBUG) -C $${dir} || exit; done
 	ld-- kernel.o ${GENOBJS} > kernel.sym
 	size-- kernel.o
 	objbin-- 0x0000 kernel.bin kernel.o | sort --key=1 > kernel.map
 
 # 組み込みアプリ用のカーネルを作る
-kernel0.bin : clean0
-	$(foreach dir,$(EMBSUBDIRS),${MAKE} ${DEBUG} EMBEDDED=1 --directory=$(dir);)
+.PHONY: kernel0.bin
+kernel0.bin :
+	for dir in $(EMBSUBDIRS); do $(MAKE) $(DEBUG) EMBEDDED=1 -C $${dir} || exit; done
 	ld-- kernel0.o ${EMBOBJS} > kernel0.sym
 	size-- kernel0.o
 	objbin-- 0x0000 kernel0.bin kernel0.o | sort --key=1 > kernel0.map

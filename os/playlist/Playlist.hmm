@@ -1,0 +1,40 @@
+
+#ifndef PLAYLIST_HMM
+#define PLAYLIST_HMM
+
+struct PlaylistItem {
+	PlaylistItem prev;
+	PlaylistItem next;
+	char[] path;
+};
+
+struct Playlist {
+	PlaylistItem front;
+	PlaylistItem back;
+	int count;
+};
+
+public Playlist createPlaylist();
+public void destroyPlaylist(Playlist playlist);
+
+public boolean addPlaylistFile(Playlist playlist, char[] path);
+public boolean removePlaylistFile(Playlist playlist, int index);
+
+public boolean loadPlaylist(Playlist playlist, char[] playlistFile);
+public boolean savePlaylist(Playlist playlist, char[] playlistFile);
+
+public int getPlaylistCount(Playlist playlist);
+
+public boolean getPlaylistFile(
+	Playlist playlist,
+	int index,
+	char[] destination,
+    int destinationSize
+);
+
+
+#ifdef PLAYLIST_UNIT_TEST
+public boolean testPlaylist();
+#endif
+
+#endif

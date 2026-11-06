@@ -1,0 +1,19 @@
+#ifndef HISTORY_HMM
+#define HISTORY_HMM
+
+#define HISTORY_FILE "/PLAYHIST.TXT"
+
+// 再生開始に成功した曲のパスを履歴へ記録する．
+// 成功ならtrue，失敗ならfalse．
+public boolean recordPlayHistory(char[] file);
+
+// 履歴を曲ごとに集計し，ファイル名と再生回数を表示する．
+// 戻る操作で呼出し元へ戻る．
+public void showHistory();
+
+#ifdef HISTORY_UNIT_TEST
+public boolean testHistory();
+public void testHistoryViewer();
+#endif
+
+#endif

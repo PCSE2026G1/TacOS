@@ -35,10 +35,17 @@
 #include <pm.hmm>
 #include <init.hmm>
 #else
+#include <AudioDecoder.hmm>
+#include <Clock.hmm>
+#ifndef CLOCKVIEWER_UNIT_TEST
+#include <MP3Player.hmm>
+#endif
 #include <shellProc.hmm>
 #include <mp3Proc.hmm>
 #include <spi.hmm>
 #endif
+
+public void app_init_processes();
 
 // ----------------------------------------------------------------------------
 // カーネルプロセスの PCB とスタック領域を定義
@@ -50,16 +57,23 @@ MakePCB(fsMem);                                     // FS のPCBとスタック�
 MakePCB(mmMem);                                     // MM のPCBとスタック領域
 
 #ifndef EMBEDDED
-// 汎用カーネルの場合  
+// 汎用カーネルの場合
 MakePCB(initMem);                                   // INITのPCBとスタック領域
 MakePCB(pmMem);                                     // PM のPCBとスタック領域
 int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザだけ）
 #else
 // 組み込みカーネルの場合
-MakePCB(shellMem);                                  // APPのPCBとスタック領域
+//MakePCB(shellMem);                                  // APPのPCBとスタック領域
 MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
-int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
+MakePCB(clockMem);                                  // ClockのPCBとスタック領域
+#ifndef CLOCKVIEWER_UNIT_TEST
+MakePCB(mp3PlayerMonitorMem);                       // MP3Player監視プロセス
+#endif
+//int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
 int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
+#ifndef CLOCKVIEWER_UNIT_TEST
+int[] mp3PlayerMonitorFds = array(P_FILE_MAX);
+#endif
 #endif
 
 // ----------------------------------------------------------------------------
@@ -88,15 +102,30 @@ public void regProc()  {
   // 組み込みカーネルの場合
   // （優先順位によって性能が変わる．優先順位は慎重に決めること）
   // MP3 プレーヤのメインプロセス
-  newProc(addrof(shellMain),2,0,EI|KERN,_AtoA(shellMem),shellFds);
-  schProc(_AtoA(shellMem));
+  //newProc(addrof(shellMain),2,0,EI|KERN,_AtoA(shellMem),shellFds);
+  //schProc(_AtoA(shellMem));
 
   // MP3 データ転送プロセス
   newProc(addrof(mp3Main),3,0,EI|KERN,_AtoA(mp3Mem),mp3Fds);
   schProc(_AtoA(mp3Mem));
 
+  app_init_processes();
+
   // SPIドライバの初期化（プロセス起動前にすべきことをやる）
   spiInit();
+  AudioDecoderInit();
+  ClockInit();
+#ifndef CLOCKVIEWER_UNIT_TEST
+  MP3PlayerInit();
+#endif
+  newProc(addrof(clockMain),0,0,EI|KERN,_AtoA(clockMem),null);
+  schProc(_AtoA(clockMem));
+
+#ifndef CLOCKVIEWER_UNIT_TEST
+  newProc(addrof(mp3PlayerMonitorMain),4,0,EI|KERN,
+          _AtoA(mp3PlayerMonitorMem),mp3PlayerMonitorFds);
+  schProc(_AtoA(mp3PlayerMonitorMem));
+#endif
 
 #endif
 }

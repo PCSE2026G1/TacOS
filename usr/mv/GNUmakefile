@@ -29,7 +29,7 @@ NAME=mv
 SRCS=${NAME}.cmm
 #----------------------------------------------------------------------------
 
-all : clean ${NAME}.exe
+all : ${NAME}.exe
 
 ${NAME}.exe : ${SRCS}
 	cm2e -o ${NAME} ${SRCS}

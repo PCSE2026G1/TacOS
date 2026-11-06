@@ -45,6 +45,7 @@
 // ＊＊＊＊　重要！！　クライアントプロセスは一つだけの前提　＊＊＊＊
 int link;                                   // メッセージ通信用のリンク
 boolean syncFlag = false;                   // クライアントが同期待ちである
+int playbackState = MP3_STATE_STOPPED;      // 停止，再生中，自然終了を区別する
 
 //-----------------------------------------------------------------------------
 // クライアントプロセスが呼び出す
@@ -64,6 +65,11 @@ public boolean play(char[] path) {
   return r==OK;                             // 成功なら true を返す
 }
 
+// 再生状態を返す．FINISHED はファイル末尾まで転送した場合だけ設定される．
+public int getPlaybackState() {
+  return playbackState;
+}
+
 //-----------------------------------------------------------------------------
 // 音楽データ転送用のプロセス
 //-----------------------------------------------------------------------------
@@ -74,17 +80,21 @@ char[] buf = array(BUFSIZ);
 void trans(char[] path) {
   int fd = open(path, READ_MODE);           // ファイルをオープン
   if (fd<0) {                               // オープンできない
+    playbackState = MP3_STATE_STOPPED;
     send(link, ERR);                        //   クライアントにエラーを通知
     return;                                 //   コマンド待に戻る
   }
+  playbackState = MP3_STATE_PLAYING;
   send(link, OK);                           // クライアントに成功を通知
-  int len;
+  int len = 0;
   while ((len=read(fd, buf, BUFSIZ))>0) {   // データをファイルから読み
     spiWriteMp3Dat(buf, len);               //   MP3デコーダにデータを送る
     if (syncFlag) break;                    //   クライアントが待っている
   }
   spiFlushMp3();                            // デコーダLSIのバッファをクリアし
   close(fd);                                // ファイルをクローズ
+  if (!syncFlag && len==0) playbackState = MP3_STATE_FINISHED;
+  else playbackState = MP3_STATE_STOPPED;
 }
 
 // mp3Main は，プロセスのメインルーチンとしてカーネルに登録しておく．
@@ -95,6 +105,7 @@ public void mp3Main() {
     Link l=receive(link);                   // クライアントから受信待ち
     syncFlag = false;                       // クライアント停止中にフラグ操作
     if (l.op==STOP) {
+      playbackState = MP3_STATE_STOPPED;
       send(link, OK);                       // クライアントを再開する
     } else if (l.op==START) {
       trans(_ItoA(l.prm1));                 // ファイルからデータ転送
